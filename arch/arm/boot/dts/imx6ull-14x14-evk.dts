@@ -672,8 +672,7 @@
 &lcdif {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_lcdif_dat
-		     &pinctrl_lcdif_ctrl
-		     &pinctrl_lcdif_reset>;
+		     &pinctrl_lcdif_ctrl>;
 	display = <&display0>;
 	status = "okay";
 
