@@ -524,6 +524,13 @@
 			>;
 		};
 
+		pinctrl_uart3: uart3grp {
+			fsl,pins = <
+				MX6UL_PAD_UART3_RX_DATA__UART3_DCE_RX	0x1b0b1
+				MX6UL_PAD_UART3_TX_DATA__UART3_DCE_TX	0x1b0b1
+			>;
+		};
+
 		pinctrl_usdhc1: usdhc1grp {
 			fsl,pins = <
 				MX6UL_PAD_SD1_CMD__USDHC1_CMD     0x17059
@@ -757,6 +764,12 @@
 	/* for DTE mode, add below change */
 	/* fsl,dte-mode; */
 	/* pinctrl-0 = <&pinctrl_uart2dte>; */
+	status = "disabled";
+};
+
+&uart3 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart3>;
 	status = "okay";
 };
 
