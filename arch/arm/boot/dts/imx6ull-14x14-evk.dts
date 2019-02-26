@@ -68,7 +68,7 @@
 			regulator-name = "VSD_3V3";
 			regulator-min-microvolt = <3300000>;
 			regulator-max-microvolt = <3300000>;
-			gpio = <&gpio1 9 GPIO_ACTIVE_HIGH>;
+			/* gpio = <&gpio1 9 GPIO_ACTIVE_HIGH>; */
 			enable-active-high;
 		};
 
@@ -323,6 +323,20 @@
 			};
 		};
 	};
+
+        edt-ft5x06@38 {
+		compatible = "edt,edt-ft5306", "edt,edt-ft5x06";
+		pinctrl-names = "default";
+		pinctrl-0 = <&ts_int_pin
+			     &ts_reset_pin>;
+
+		reg = <0x38>;
+		interrupt-parent = <&gpio1>;
+		interrupts = <9 0>;
+		reset-gpios = <&gpio5 9 GPIO_ACTIVE_LOW>;
+
+		status = "okay";
+	};
 };
 
 &iomuxc {
@@ -333,7 +347,6 @@
 			fsl,pins = <
 				MX6UL_PAD_UART1_RTS_B__GPIO1_IO19	0x17059 /* SD1 CD */
 				MX6UL_PAD_GPIO1_IO05__USDHC1_VSELECT	0x17059 /* SD1 VSELECT */
-				MX6UL_PAD_GPIO1_IO09__GPIO1_IO09        0x17059 /* SD1 RESET */
 			>;
 		};
 
@@ -625,6 +638,12 @@
 				MX6UL_PAD_LCD_RESET__WDOG1_WDOG_ANY    0x30b0
 			>;
 		};
+
+		ts_int_pin: ts_int_pin_mux {
+			fsl,pins = <
+				MX6UL_PAD_GPIO1_IO09__GPIO1_IO09	0x80000000
+			>;
+		};
 	};
 };
 
@@ -665,6 +684,12 @@
                                 MX6ULL_PAD_SNVS_TAMPER4__GPIO5_IO04   0x17059
                         >;
                 };
+
+		ts_reset_pin: ts_reset_pin_mux {
+			fsl,pins = <
+				MX6ULL_PAD_SNVS_TAMPER9__GPIO5_IO09	0x80000000
+			>;
+		};
         };
 };
 
