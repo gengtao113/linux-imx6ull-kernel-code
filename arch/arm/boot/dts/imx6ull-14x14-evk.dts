@@ -88,7 +88,8 @@
 	leds {
 		compatible = "gpio-leds";
 		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_gpio_leds>;
+		pinctrl-0 = <&pinctrl_gpio_leds
+			     &pinctrl_beep>;
 
 		led1{
 			label = "sys-led";
@@ -411,7 +412,6 @@
 			fsl,pins = <
 				MX6UL_PAD_GPIO1_IO03__GPIO1_IO03	0x17059
 				MX6UL_PAD_GPIO1_IO04__GPIO1_IO04	0x17059
-				MX6UL_PAD_SNVS_TAMPER1__GPIO5_IO01	0x17059
 			>;
 		};
 
@@ -700,6 +700,12 @@
 		ts_reset_pin: ts_reset_pin_mux {
 			fsl,pins = <
 				MX6ULL_PAD_SNVS_TAMPER9__GPIO5_IO09	0x80000000
+			>;
+		};
+
+		pinctrl_beep: beep {
+			fsl,pins = <
+				MX6ULL_PAD_SNVS_TAMPER1__GPIO5_IO01	0x17059
 			>;
 		};
         };
