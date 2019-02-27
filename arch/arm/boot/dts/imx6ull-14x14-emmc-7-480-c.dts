@@ -1,6 +1,16 @@
 
 #include "imx6ull-14x14-evk-emmc.dts"
 
+&i2c2 {
+	edt-ft5x06@38 {
+		status = "okay";
+	};
+
+	goodix_ts@5d {
+		status = "disabled";
+	};
+};
+
 &lcdif {
 	display0: display {
 		bits-per-pixel = <16>;
