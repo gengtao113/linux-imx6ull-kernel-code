@@ -117,6 +117,17 @@ config RTL8192CU
 
 	If you choose to build it as a module, it will be called rtl8192cu
 
+config RTL8188EUS
+        tristate "Realtek RTL8188EUS USB Wireless Network Adapter"
+	depends on USB
+	select RTLWIFI
+	select RTLWIFI_USB
+	---help---
+	This is the driver for Realtek RTL8188EUS 802.11n USB
+	wireless network adapters.
+
+	If you choose to build it as a module, it will be called rtl8188eus
+
 config RTLWIFI
 	tristate
 	select FW_LOADER
