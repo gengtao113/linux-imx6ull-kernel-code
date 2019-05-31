@@ -106,6 +106,14 @@ config FSL_OTP
 
 	  If unsure, it is safe to say Y.
 
+config LITEON_AP3216C
+	tristate "Lite-On Three-in-one Environmental Sensor ap3216c Support"
+	help
+	  To compile this driver as a module, choose M here: the module
+	  will be called ap3216c.
+
+	  If unsure, it is safe to say Y.
+
 config PRINTER
 	tristate "Parallel printer support"
 	depends on PARPORT
