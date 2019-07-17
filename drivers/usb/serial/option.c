@@ -509,6 +509,9 @@ static void option_instat_callback(struct urb *urb);
 #define INOVIA_VENDOR_ID			0x20a6
 #define INOVIA_SEW858				0x1105
 
+/* EC20 4G*/
+#define QUECTEL_VENDOR_ID			0x2C7C
+#define QUECTEL_PRODUCT_EC20			0X0125
 /* VIA Telecom */
 #define VIATELECOM_VENDOR_ID			0x15eb
 #define VIATELECOM_PRODUCT_CDS7			0x0001
@@ -624,6 +627,7 @@ static const struct option_blacklist_info sierra_mc73xx_blacklist = {
 };
 
 static const struct usb_device_id option_ids[] = {
+	{ USB_DEVICE(QUECTEL_VENDOR_ID, QUECTEL_PRODUCT_EC20)},/* EC20*/
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_COLT) },
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_RICOLA) },
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_RICOLA_LIGHT) },
@@ -1877,9 +1881,22 @@ static int option_probe(struct usb_serial *serial,
 	 * Don't bind network interface on Samsung GT-B3730, it is handled by
 	 * a separate module.
 	 */
-	if (dev_desc->idVendor == cpu_to_le16(SAMSUNG_VENDOR_ID) &&
+	/*if (dev_desc->idVendor == cpu_to_le16(SAMSUNG_VENDOR_ID) &&
 	    dev_desc->idProduct == cpu_to_le16(SAMSUNG_PRODUCT_GT_B3730) &&
 	    iface_desc->bInterfaceClass != USB_CLASS_CDC_DATA)
+		return -ENODEV;*/
+	if (dev_desc->idVendor == cpu_to_le16(0x05C6) &&
+		dev_desc->idProduct == cpu_to_le16(0x9003) &&
+		iface_desc->bInterfaceNumber >= 4)
+		return -ENODEV;
+
+	if (dev_desc->idVendor == cpu_to_le16(0x05C6) &&
+		dev_desc->idProduct == cpu_to_le16(0x9215) &&
+		iface_desc->bInterfaceNumber >= 4)
+		return -ENODEV;
+
+	if (dev_desc->idVendor == cpu_to_le16(0x2c7C) &&
+		iface_desc->bInterfaceNumber >= 4)
 		return -ENODEV;
 
 	/* Store the blacklist info so we can use it during attach. */
