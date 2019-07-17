@@ -191,7 +191,7 @@
 
 &clks {
 	assigned-clocks = <&clks IMX6UL_CLK_PLL4_AUDIO_DIV>;
-	assigned-clock-rates = <786432000>;
+	assigned-clock-rates = <722534400>;
 };
 
 &csi {
@@ -788,7 +788,7 @@
 	assigned-clocks = <&clks IMX6UL_CLK_SAI2_SEL>,
 			  <&clks IMX6UL_CLK_SAI2>;
 	assigned-clock-parents = <&clks IMX6UL_CLK_PLL4_AUDIO_DIV>;
-	assigned-clock-rates = <0>, <12288000>;
+	assigned-clock-rates = <0>, <11289600>;
 
 	status = "okay";
 };
