@@ -22,11 +22,11 @@
 			clock-frequency = <33000000>;
 			hactive = <800>;
 			vactive = <480>;
-			hfront-porch = <210>;
-			hback-porch = <46>;
-			hsync-len = <20>;
-			vback-porch = <23>;
-			vfront-porch = <22>;
+			hfront-porch = <40>;
+			hback-porch = <88>;
+			hsync-len = <48>;
+			vback-porch = <32>;
+			vfront-porch = <13>;
 			vsync-len = <3>;
 
 			hsync-active = <0>;
