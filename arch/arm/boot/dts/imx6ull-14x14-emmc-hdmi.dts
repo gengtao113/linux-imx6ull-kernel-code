@@ -1,0 +1,13 @@
+#include "imx6ull-14x14-evk-emmc.dts"
+
+/ {
+       sii902x_reset: sii902x-reset {
+                status = "okay";
+        };
+};
+
+&i2c2 {
+	sii902x: sii902x@39{
+		status = "okay";
+	};
+};

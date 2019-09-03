@@ -181,6 +181,14 @@
 			spi-max-frequency = <100000>;
 		};
 	};
+
+       sii902x_reset: sii902x-reset {
+                compatible = "gpio-reset";
+                reset-gpios = <&gpio5 9 1>;
+                reset-delay-us = <100000>;
+                #reset-cells = <0>;
+                status = "disabled";
+        };
 };
 
 &cpu0 {
@@ -341,6 +349,19 @@
 		goodix,rst-gpio = <&gpio5 9  GPIO_ACTIVE_LOW>;
 		goodix,irq-gpio = <&gpio1 9  GPIO_ACTIVE_LOW>;
 	};
+
+        sii902x: sii902x@39 {
+                compatible = "SiI,sii902x";
+                pinctrl-names = "default";
+                pinctrl-0 = <&pinctrl_sii902x>;
+                interrupt-parent = <&gpio1>;
+                interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
+                mode_str = "1024x768M@60";
+                bits-per-pixel = <16>;
+                resets = <&sii902x_reset>;
+                reg = <0x39>;
+                status = "disabled";
+        };
 };
 
 &iomuxc {
@@ -504,6 +525,12 @@
 				MX6UL_PAD_JTAG_TMS__SAI2_MCLK		0x17088
 			>;
 		};
+
+                pinctrl_sii902x: hdmigrp-1 {
+                        fsl,pins = <
+                                MX6UL_PAD_GPIO1_IO09__GPIO1_IO09        0x59
+                        >;
+                };
 
 		pinctrl_tsc: tscgrp {
 			fsl,pins = <
@@ -727,6 +754,31 @@
 		     &pinctrl_lcdif_ctrl>;
 	display = <&display0>;
 	status = "okay";
+
+        display0: display {
+                bits-per-pixel = <16>;
+                bus-width = <24>;
+
+                display-timings {
+                        native-mode = <&timing0>;
+                        timing0: timing0 {
+                        clock-frequency = <35500000>;
+                        hactive = <800>;
+                        vactive = <480>;
+                        hfront-porch = <210>;
+                        hback-porch = <46>;
+                        hsync-len = <20>;
+                        vback-porch = <23>;
+                        vfront-porch = <22>;
+                        vsync-len = <3>;
+
+                        hsync-active = <0>;
+                        vsync-active = <0>;
+                        de-active = <1>;
+                        pixelclk-active = <0>;
+                        };
+                };
+        };
 };
 
 &pwm1 {
