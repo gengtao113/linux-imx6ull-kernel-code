@@ -512,6 +512,13 @@ static void option_instat_callback(struct urb *urb);
 /* EC20 4G*/
 #define QUECTEL_VENDOR_ID			0x2C7C
 #define QUECTEL_PRODUCT_EC20			0X0125
+
+/* GOSUNCN 4G modems */
+#define GOSUNCN_VENDOR_ID			0x19d2
+#define GOSUNCN_PRODUCT_0117			0x0117
+#define GOSUNCN_PRODUCT_0199                    0x0199
+#define GOSUNCN_PRODUCT_1476                    0x1476
+
 /* VIA Telecom */
 #define VIATELECOM_VENDOR_ID			0x15eb
 #define VIATELECOM_PRODUCT_CDS7			0x0001
@@ -628,6 +635,9 @@ static const struct option_blacklist_info sierra_mc73xx_blacklist = {
 
 static const struct usb_device_id option_ids[] = {
 	{ USB_DEVICE(QUECTEL_VENDOR_ID, QUECTEL_PRODUCT_EC20)},/* EC20*/
+	{ USB_DEVICE(GOSUNCN_VENDOR_ID, GOSUNCN_PRODUCT_0117)},/* ME3630-w */
+        { USB_DEVICE(GOSUNCN_VENDOR_ID, GOSUNCN_PRODUCT_0199)},/* ME3630-w */
+        { USB_DEVICE(GOSUNCN_VENDOR_ID, GOSUNCN_PRODUCT_1476)},/* ME3630-w */
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_COLT) },
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_RICOLA) },
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_RICOLA_LIGHT) },
@@ -1863,6 +1873,32 @@ static int option_probe(struct usb_serial *serial,
 				&serial->interface->cur_altsetting->desc;
 	struct usb_device_descriptor *dev_desc = &serial->dev->descriptor;
 	const struct option_blacklist_info *blacklist;
+
+	/* GOSUNCN 4G modems */
+	printk("idVendor=%x, idProduct=%x, bInterfaceNumber =%d\r\n",
+					serial->dev->descriptor.idVendor,
+					serial->dev->descriptor.idProduct,
+					serial->interface->cur_altsetting->desc. bInterfaceNumber);
+
+	if (serial->dev->descriptor.idVendor == 0x19d2 &&
+			serial->dev->descriptor.idProduct == 0x1476 &&
+			serial->interface->cur_altsetting->desc. bInterfaceNumber == 3)
+			return -ENODEV;
+
+	if (serial->dev->descriptor.idVendor == 0x19d2 &&
+			serial->dev->descriptor.idProduct == 0x1476 &&
+			serial->interface->cur_altsetting->desc. bInterfaceNumber == 4)
+			return -ENODEV;
+
+	if (serial->dev->descriptor.idVendor == 0x19d2 &&
+			serial->dev->descriptor.idProduct == 0x1509 &&
+			serial->interface->cur_altsetting->desc. bInterfaceNumber == 4)
+			return -ENODEV;
+
+	if (serial->dev->descriptor.idVendor == 0x19d2 &&
+			serial->dev->descriptor.idProduct == 0x1509 &&
+			serial->interface->cur_altsetting->desc. bInterfaceNumber == 5)
+			return -ENODEV;
 
 	/* Never bind to the CD-Rom emulation interface	*/
 	if (iface_desc->bInterfaceClass == 0x08)
