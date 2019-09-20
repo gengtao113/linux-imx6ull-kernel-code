@@ -905,6 +905,7 @@
 	keep-power-in-suspend;
 	enable-sdio-wakeup;
 	vmmc-supply = <&reg_sd1_vmmc>;
+	no-1-8-v;
 	status = "okay";
 };
 
