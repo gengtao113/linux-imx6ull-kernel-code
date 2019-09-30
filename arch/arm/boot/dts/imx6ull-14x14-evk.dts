@@ -798,7 +798,7 @@
                         hsync-active = <0>;
                         vsync-active = <0>;
                         de-active = <1>;
-                        pixelclk-active = <0>;
+                        pixelclk-active = <1>;
                         };
                 };
         };
@@ -838,7 +838,7 @@
 	assigned-clocks = <&clks IMX6UL_CLK_SAI2_SEL>,
 			  <&clks IMX6UL_CLK_SAI2>;
 	assigned-clock-parents = <&clks IMX6UL_CLK_PLL4_AUDIO_DIV>;
-	assigned-clock-rates = <0>, <12288000>, <11289600>;
+	assigned-clock-rates = <0>, <11289600>;
 
 	status = "okay";
 };
