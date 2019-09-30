@@ -178,7 +178,7 @@ int console_blanked;
 
 static int vesa_blank_mode; /* 0:none 1:suspendV 2:suspendH 3:powerdown */
 static int vesa_off_interval;
-static int blankinterval = 0;
+static int blankinterval = 10*60;
 core_param(consoleblank, blankinterval, int, 0444);
 
 static DECLARE_WORK(console_work, console_callback);
@@ -3891,6 +3891,7 @@ void unblank_screen(void)
  */
 static void blank_screen_t(unsigned long dummy)
 {
+	return;
 	if (unlikely(!keventd_up())) {
 		mod_timer(&console_timer, jiffies + (blankinterval * HZ));
 		return;
