@@ -147,7 +147,7 @@ static struct reg_value ov5640_global_init_setting[] = {
 	{0x4005, 0x1a, 0, 0}, {0x3000, 0x00, 0, 0}, {0x3004, 0xff, 0, 0},
 	{0x300e, 0x58, 0, 0}, {0x302e, 0x00, 0, 0}, {0x4300, 0x30, 0, 0},
 	{0x501f, 0x00, 0, 0}, {0x440e, 0x00, 0, 0}, {0x5000, 0xa7, 0, 0},
-	{0x3008, 0x02, 0, 0}, {0x4740, 0x20, 0, 0},
+	{0x3008, 0x02, 0, 0}, {0x4740, 0x21, 0, 0},
 };
 
 static struct reg_value ov5640_init_setting_30fps_VGA[] = {
@@ -820,7 +820,6 @@ static int ov5640_driver_capability(int strength)
 	}
 
 	ov5640_read_reg(0x302c, &temp);
-
 	temp &= ~0xc0;	/* clear [7:6] */
 	temp |= ((strength - 1) << 6);	/* set [7:6] */
 
@@ -1150,7 +1149,7 @@ static int ov5640_init_mode(void)
 	/* change driver capability to 2x according to validation board.
 	 * if the image is not stable, please increase the driver strength.
 	 */
-	ov5640_driver_capability(2);
+	ov5640_driver_capability(1);
 	ov5640_set_bandingfilter();
 	ov5640_set_AE_target(AE_Target);
 	ov5640_set_night_mode(night_mode);
