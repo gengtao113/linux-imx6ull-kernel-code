@@ -370,7 +370,7 @@
                 pinctrl-0 = <&pinctrl_sii902x>;
                 interrupt-parent = <&gpio1>;
                 interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
-                mode_str = "1024x768M@60";
+                mode_str = "1280x720M@60";
                 bits-per-pixel = <16>;
                 resets = <&sii902x_reset>;
                 reg = <0x39>;
@@ -551,7 +551,7 @@
 
                 pinctrl_sii902x: hdmigrp-1 {
                         fsl,pins = <
-                                MX6UL_PAD_GPIO1_IO09__GPIO1_IO09        0x59
+                                MX6UL_PAD_GPIO1_IO09__GPIO1_IO09        0x11
                         >;
                 };
 
@@ -693,7 +693,7 @@
 
 		ts_int_pin: ts_int_pin_mux {
 			fsl,pins = <
-				MX6UL_PAD_GPIO1_IO09__GPIO1_IO09	0x80000000
+				MX6UL_PAD_GPIO1_IO09__GPIO1_IO09	0x18
 			>;
 		};
 
@@ -758,7 +758,7 @@
 
 		ts_reset_pin: ts_reset_pin_mux {
 			fsl,pins = <
-				MX6ULL_PAD_SNVS_TAMPER9__GPIO5_IO09	0x80000000
+				MX6ULL_PAD_SNVS_TAMPER9__GPIO5_IO09	0x18
 			>;
 		};
 
