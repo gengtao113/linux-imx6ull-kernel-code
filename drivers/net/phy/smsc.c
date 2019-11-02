@@ -23,7 +23,8 @@
 #include <linux/phy.h>
 #include <linux/netdevice.h>
 #include <linux/smscphy.h>
-
+#include <linux/of_gpio.h>
+#include <linux/io.h>
 static int smsc_phy_config_intr(struct phy_device *phydev)
 {
 	int rc = phy_write (phydev, MII_LAN83C185_IM,
@@ -57,8 +58,68 @@ static int smsc_phy_config_init(struct phy_device *phydev)
 	return smsc_phy_ack_interrupt(phydev);
 }
 
+#if 0
 static int smsc_phy_reset(struct phy_device *phydev)
 {
+	int rc = phy_read(phydev, MII_LAN83C185_SPECIAL_MODES);
+	if (rc < 0)
+		return rc;
+
+	/* If the SMSC PHY is in power down mode, then set it
+	 * in all capable mode before using it.
+	 */
+	if ((rc & MII_LAN83C185_MODE_MASK) == MII_LAN83C185_MODE_POWERDOWN) {
+		int timeout = 50000;
+		/* set "all capable" mode and reset the phy */
+		rc |= MII_LAN83C185_MODE_ALL;
+		phy_write(phydev, MII_LAN83C185_SPECIAL_MODES, rc);
+		phy_write(phydev, MII_BMCR, BMCR_RESET);
+
+		/* wait end of reset (max 500 ms) */
+		do {
+			udelay(10);
+			if (timeout-- == 0)
+				return -1;
+			rc = phy_read(phydev, MII_BMCR);
+		} while (rc & BMCR_RESET);
+	}
+	return 0;
+}
+#endif
+
+static int smsc_phy_reset(struct phy_device *phydev)
+{
+	int err, phy_reset;
+	int msec = 1;
+	struct device_node *np;
+
+	if(phydev->addr == 0) /* FEC1  */ {
+		np = of_find_node_by_path("/soc/aips-bus@02100000/ethernet@02188000");
+		if(np == NULL) {
+			return -EINVAL;
+		}
+	}
+
+	if(phydev->addr == 1) /* FEC2  */ {
+		np = of_find_node_by_path("/soc/aips-bus@02000000/ethernet@020b4000");
+		if(np == NULL) {
+			return -EINVAL;
+		}
+	}
+
+	err = of_property_read_u32(np, "phy-reset-duration", &msec);
+	/* A sane reset duration should not be longer than 1s */
+	if (!err && msec > 1000)
+		msec = 1;
+	phy_reset = of_get_named_gpio(np, "phy-reset-gpios", 0);
+	if (!gpio_is_valid(phy_reset))
+		return;
+
+	gpio_direction_output(phy_reset, 0);
+	gpio_set_value(phy_reset, 0);
+	msleep(msec);
+	gpio_set_value(phy_reset, 1);
+
 	int rc = phy_read(phydev, MII_LAN83C185_SPECIAL_MODES);
 	if (rc < 0)
 		return rc;
@@ -72,17 +133,16 @@ static int smsc_phy_reset(struct phy_device *phydev)
 		rc |= MII_LAN83C185_MODE_ALL;
 		phy_write(phydev, MII_LAN83C185_SPECIAL_MODES, rc);
 	}
-		phy_write(phydev, MII_BMCR, BMCR_RESET);
 
-		/* wait end of reset (max 500 ms) */
-		int timeout = 50000;
-		do {
-			udelay(10);
-			if (timeout-- == 0)
-				return -1;
-			rc = phy_read(phydev, MII_BMCR);
-		} while (rc & BMCR_RESET);
-
+	phy_write(phydev, MII_BMCR, BMCR_RESET);
+	/* wait end of reset (max 500 ms) */
+	int timeout = 50000;
+	do {
+		udelay(10);
+		if (timeout-- == 0)
+			return -1;
+		rc = phy_read(phydev, MII_BMCR);
+	} while (rc & BMCR_RESET);
 	return 0;
 }
 
