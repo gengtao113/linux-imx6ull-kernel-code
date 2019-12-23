@@ -479,9 +479,10 @@ static int sii902x_remove(struct i2c_client *client)
 static void sii902x_poweron(void)
 {
 	/* Turn on DVI or HDMI */
-	if (sii902x.edid_cfg.hdmi_cap)
+	/*if (sii902x.edid_cfg.hdmi_cap){
 		i2c_smbus_write_byte_data(sii902x.client, 0x1A, 0x01);
-	else
+	}
+	else*/
 		i2c_smbus_write_byte_data(sii902x.client, 0x1A, 0x00);
 	return;
 }
@@ -489,9 +490,9 @@ static void sii902x_poweron(void)
 static void sii902x_poweroff(void)
 {
 	/* disable tmds before changing resolution */
-	if (sii902x.edid_cfg.hdmi_cap)
+	/*if (sii902x.edid_cfg.hdmi_cap)
 		i2c_smbus_write_byte_data(sii902x.client, 0x1A, 0x11);
-	else
+	else*/
 		i2c_smbus_write_byte_data(sii902x.client, 0x1A, 0x10);
 
 	return;
