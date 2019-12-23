@@ -40,7 +40,7 @@
 		compatible = "pwm-backlight";
 		pwms = <&pwm1 0 5000000>;
 		brightness-levels = <0 4 8 16 32 64 128 255>;
-		default-brightness-level = <6>;
+		default-brightness-level = <7>;
 		status = "okay";
 	};
 
@@ -184,7 +184,7 @@
 
        sii902x_reset: sii902x-reset {
                 compatible = "gpio-reset";
-                reset-gpios = <&gpio5 9 1>;
+                reset-gpios = <&gpio5 9 GPIO_ACTIVE_LOW>;
                 reset-delay-us = <100000>;
                 #reset-cells = <0>;
                 status = "disabled";
@@ -348,7 +348,7 @@
 		interrupt-parent = <&gpio1>;
 		interrupts = <9 0>;
 		reset-gpios = <&gpio5 9 GPIO_ACTIVE_LOW>;
-
+		irq-gpios = <&gpio1 9 GPIO_ACTIVE_LOW>;
 		status = "disabled";
 	};
 
@@ -486,39 +486,39 @@
 
 		pinctrl_lcdif_dat: lcdifdatgrp {
 			fsl,pins = <
-				MX6UL_PAD_LCD_DATA00__LCDIF_DATA00  0x18
-				MX6UL_PAD_LCD_DATA01__LCDIF_DATA01  0x18
-				MX6UL_PAD_LCD_DATA02__LCDIF_DATA02  0x18
-				MX6UL_PAD_LCD_DATA03__LCDIF_DATA03  0x18
-				MX6UL_PAD_LCD_DATA04__LCDIF_DATA04  0x18
-				MX6UL_PAD_LCD_DATA05__LCDIF_DATA05  0x18
-				MX6UL_PAD_LCD_DATA06__LCDIF_DATA06  0x18
-				MX6UL_PAD_LCD_DATA07__LCDIF_DATA07  0x18
-				MX6UL_PAD_LCD_DATA08__LCDIF_DATA08  0x18
-				MX6UL_PAD_LCD_DATA09__LCDIF_DATA09  0x18
-				MX6UL_PAD_LCD_DATA10__LCDIF_DATA10  0x18
-				MX6UL_PAD_LCD_DATA11__LCDIF_DATA11  0x18
-				MX6UL_PAD_LCD_DATA12__LCDIF_DATA12  0x18
-				MX6UL_PAD_LCD_DATA13__LCDIF_DATA13  0x18
-				MX6UL_PAD_LCD_DATA14__LCDIF_DATA14  0x18
-				MX6UL_PAD_LCD_DATA15__LCDIF_DATA15  0x18
-				MX6UL_PAD_LCD_DATA16__LCDIF_DATA16  0x18
-				MX6UL_PAD_LCD_DATA17__LCDIF_DATA17  0x18
-				MX6UL_PAD_LCD_DATA18__LCDIF_DATA18  0x18
-				MX6UL_PAD_LCD_DATA19__LCDIF_DATA19  0x18
-				MX6UL_PAD_LCD_DATA20__LCDIF_DATA20  0x18
-				MX6UL_PAD_LCD_DATA21__LCDIF_DATA21  0x18
-				MX6UL_PAD_LCD_DATA22__LCDIF_DATA22  0x18
-				MX6UL_PAD_LCD_DATA23__LCDIF_DATA23  0x18
+				MX6UL_PAD_LCD_DATA00__LCDIF_DATA00  0x49
+				MX6UL_PAD_LCD_DATA01__LCDIF_DATA01  0x49
+				MX6UL_PAD_LCD_DATA02__LCDIF_DATA02  0x49
+				MX6UL_PAD_LCD_DATA03__LCDIF_DATA03  0x49
+				MX6UL_PAD_LCD_DATA04__LCDIF_DATA04  0x49
+				MX6UL_PAD_LCD_DATA05__LCDIF_DATA05  0x49
+				MX6UL_PAD_LCD_DATA06__LCDIF_DATA06  0x49
+				MX6UL_PAD_LCD_DATA07__LCDIF_DATA07  0x51
+				MX6UL_PAD_LCD_DATA08__LCDIF_DATA08  0x49
+				MX6UL_PAD_LCD_DATA09__LCDIF_DATA09  0x49
+				MX6UL_PAD_LCD_DATA10__LCDIF_DATA10  0x49
+				MX6UL_PAD_LCD_DATA11__LCDIF_DATA11  0x49
+				MX6UL_PAD_LCD_DATA12__LCDIF_DATA12  0x49
+				MX6UL_PAD_LCD_DATA13__LCDIF_DATA13  0x49
+				MX6UL_PAD_LCD_DATA14__LCDIF_DATA14  0x49
+				MX6UL_PAD_LCD_DATA15__LCDIF_DATA15  0x51
+				MX6UL_PAD_LCD_DATA16__LCDIF_DATA16  0x49
+				MX6UL_PAD_LCD_DATA17__LCDIF_DATA17  0x49
+				MX6UL_PAD_LCD_DATA18__LCDIF_DATA18  0x49
+				MX6UL_PAD_LCD_DATA19__LCDIF_DATA19  0x49
+				MX6UL_PAD_LCD_DATA20__LCDIF_DATA20  0x49
+				MX6UL_PAD_LCD_DATA21__LCDIF_DATA21  0x49
+				MX6UL_PAD_LCD_DATA22__LCDIF_DATA22  0x49
+				MX6UL_PAD_LCD_DATA23__LCDIF_DATA23  0x51
 			>;
 		};
 
 		pinctrl_lcdif_ctrl: lcdifctrlgrp {
 			fsl,pins = <
-				MX6UL_PAD_LCD_CLK__LCDIF_CLK	    0x18
-				MX6UL_PAD_LCD_ENABLE__LCDIF_ENABLE  0x18
-				MX6UL_PAD_LCD_HSYNC__LCDIF_HSYNC    0x18
-				MX6UL_PAD_LCD_VSYNC__LCDIF_VSYNC    0x18
+				MX6UL_PAD_LCD_CLK__LCDIF_CLK	    0x49
+				MX6UL_PAD_LCD_ENABLE__LCDIF_ENABLE  0x49
+				MX6UL_PAD_LCD_HSYNC__LCDIF_HSYNC    0x49
+				MX6UL_PAD_LCD_VSYNC__LCDIF_VSYNC    0x49
 			>;
 		};
 
@@ -693,7 +693,7 @@
 
 		ts_int_pin: ts_int_pin_mux {
 			fsl,pins = <
-				MX6UL_PAD_GPIO1_IO09__GPIO1_IO09	0x18
+				MX6UL_PAD_GPIO1_IO09__GPIO1_IO09	0x49
 			>;
 		};
 
@@ -725,7 +725,7 @@
 		pinctrl_lcdif_reset: lcdifresetgrp {
                         fsl,pins = <
                                 /* used for lcd reset */
-                                MX6ULL_PAD_SNVS_TAMPER9__GPIO5_IO09  0x18
+                                MX6ULL_PAD_SNVS_TAMPER9__GPIO5_IO09  0x49
                         >;
                 };
 
@@ -758,7 +758,7 @@
 
 		ts_reset_pin: ts_reset_pin_mux {
 			fsl,pins = <
-				MX6ULL_PAD_SNVS_TAMPER9__GPIO5_IO09	0x18
+				MX6ULL_PAD_SNVS_TAMPER9__GPIO5_IO09	0x49
 			>;
 		};
 
@@ -798,7 +798,7 @@
                         hsync-active = <0>;
                         vsync-active = <0>;
                         de-active = <1>;
-                        pixelclk-active = <1>;
+                        pixelclk-active = <0>;
                         };
                 };
         };
