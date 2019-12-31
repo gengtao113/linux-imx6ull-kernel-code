@@ -41,6 +41,7 @@
 #include <linux/reset.h>
 #include <asm/mach-types.h>
 #include <video/mxc_edid.h>
+#include <linux/of_gpio.h>
 
 #define SII_EDID_LEN	512
 #define DRV_NAME "sii902x"
@@ -363,7 +364,7 @@ static int mxsfb_get_of_property(void)
 {
 	struct device_node *np = sii902x.client->dev.of_node;
 	const char *mode_str;
-	int bits_per_pixel, ret;
+	int bits_per_pixel, ret, irq_pin;
 
 	ret = of_property_read_string(np, "mode_str", &mode_str);
 	if (ret < 0) {
@@ -375,9 +376,15 @@ static int mxsfb_get_of_property(void)
 		dev_warn(&sii902x.client->dev, "get of property bpp fail\n");
 		return ret;
 	}
-
 	sii902x.mode_str = mode_str;
 	sii902x.bits_per_pixel = bits_per_pixel;
+
+       /* input mode => enabled hdmi detect
+	* output mode => disabled hdmi detect
+	* Default output mode in alpha or mini board
+	*/
+	irq_pin = of_get_named_gpio(np, "irq-gpios", 0);
+	gpio_direction_output(irq_pin, 1);
 
 	return ret;
 }
