@@ -418,6 +418,20 @@ dtb-$(CONFIG_SOC_IMX6ULL) += \
 	imx6ull-14x14-evk-btwifi.dtb \
 	imx6ull-14x14-evk-emmc.dtb \
 	imx6ull-14x14-evk-gpmi-weim.dtb \
+	imx6ull-14x14-emmc-10.1-1280x800-c.dtb \
+	imx6ull-14x14-emmc-7-1024x600-c.dtb \
+	imx6ull-14x14-emmc-7-800x480-c.dtb \
+	imx6ull-14x14-emmc-4.3-800x480-c.dtb \
+	imx6ull-14x14-emmc-4.3-480x272-c.dtb \
+	imx6ull-14x14-emmc-vga.dtb \
+	imx6ull-14x14-emmc-hdmi.dtb \
+	imx6ull-14x14-nand-10.1-1280x800-c.dtb \
+	imx6ull-14x14-nand-7-1024x600-c.dtb \
+	imx6ull-14x14-nand-7-800x480-c.dtb \
+	imx6ull-14x14-nand-4.3-800x480-c.dtb \
+	imx6ull-14x14-nand-4.3-480x272-c.dtb \
+	imx6ull-14x14-nand-vga.dtb \
+	imx6ull-14x14-nand-hdmi.dtb \
 	imx6ull-14x14-evk-usb-certi.dtb \
 	imx6ull-9x9-evk.dtb \
 	imx6ull-9x9-evk-btwifi.dtb \
