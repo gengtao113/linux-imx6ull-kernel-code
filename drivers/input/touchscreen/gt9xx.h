@@ -49,10 +49,10 @@
 
 //***************************PART1:ON/OFF define*******************************
 #define GTP_CUSTOM_CFG        0	   
-#define GTP_CHANGE_X2Y        1	   //swap x y
+#define GTP_CHANGE_X2Y        0	   //swap x y
 #define GTP_DRIVER_SEND_CFG   0	   //driver send config
 #define GTP_HAVE_TOUCH_KEY    0
-#define GTP_POWER_CTRL_SLEEP  0    //power off when suspend//default 0
+#define GTP_POWER_CTRL_SLEEP  0    //power off when suspend
 #define GTP_ICS_SLOT_REPORT   0    // slot protocol 
 
 #define GTP_AUTO_UPDATE       0    // auto update fw by .bin file as default
@@ -67,7 +67,7 @@
 #define GTP_WITH_PEN          0
 #define GTP_PEN_HAVE_BUTTON   0    // active pen has buttons, function together with GTP_WITH_PEN
 
-#define GTP_GESTURE_WAKEUP    0    // gesture wakeup default 0
+#define GTP_GESTURE_WAKEUP    0    // gesture wakeup
 
 #define GTP_DEBUG_ON          0
 #define GTP_DEBUG_ARRAY_ON    0
@@ -200,7 +200,7 @@ extern int gtp_int_gpio;
 // TODO: define your config for Sensor_ID == 5 here, if needed
 #define CTP_CFG_GROUP5 {\
     }
-#define GTP_RST_PORT 0
+#define GTP_RST_PORT 1
 
 // STEP_2(REQUIRED): Customize your I/O ports & I/O operations
 #define GTP_GPIO_AS_INPUT(pin)          do{\

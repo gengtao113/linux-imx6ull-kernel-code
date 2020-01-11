@@ -392,8 +392,10 @@ static void gtp_touch_down(struct goodix_ts_data* ts,s32 id,s32 x,s32 y,s32 w)
     input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, w);
 #else
    input_report_key(ts->input_dev, BTN_TOUCH, 1);
-    input_report_abs(ts->input_dev, ABS_X, ts->abs_x_max - x);
-    input_report_abs(ts->input_dev, ABS_Y, ts->abs_y_max - y);
+    //input_report_abs(ts->input_dev, ABS_X, ts->abs_x_max - x);
+    //input_report_abs(ts->input_dev, ABS_Y, ts->abs_y_max - y);
+    input_report_abs(ts->input_dev, ABS_X, x);
+    input_report_abs(ts->input_dev, ABS_Y, y);
     input_report_abs(ts->input_dev, ABS_Z, 0);
     input_report_abs(ts->input_dev, ABS_PRESSURE, 1);
     input_mt_sync(ts->input_dev);
@@ -1260,7 +1262,7 @@ static s8 gtp_wakeup_sleep(struct goodix_ts_data * ts)
     {
         gtp_reset_guitar(ts->client, 20);
         
-        GTP_INFO("GTP wakeup sleep.");
+        //GTP_INFO("GTP wakeup sleep.");
         return 1;
     }
 #else
@@ -1288,7 +1290,7 @@ static s8 gtp_wakeup_sleep(struct goodix_ts_data * ts)
         ret = gtp_i2c_test(ts->client);
         if (ret > 0)
         {
-            GTP_INFO("GTP wakeup sleep.");
+            //GTP_INFO("GTP wakeup sleep.");
             
         #if (!GTP_GESTURE_WAKEUP)
             {
@@ -2326,7 +2328,7 @@ static void gtp_parse_dt(struct device *dev)
 {
 	struct device_node *np = dev->of_node;
 
-	gtp_int_gpio = of_get_named_gpio(np, "goodix,irq-gpio", 0);//default 0
+	gtp_int_gpio = of_get_named_gpio(np, "goodix,irq-gpio", 0);
 #if GTP_RST_PORT
 	gtp_rst_gpio = of_get_named_gpio(np, "goodix,rst-gpio", 0);
 #endif
@@ -2436,13 +2438,14 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
         GTP_ERROR("I2C check functionality failed.");
         return -ENODEV;
     }
+#if 0
     ret = gtp_i2c_test_no_rst(client);
     if(ret < 0)
     {
 	GTP_ERROR("I2C read failed.");
         return -ENODEV;
     } 
-
+#endif
     ts = kzalloc(sizeof(*ts), GFP_KERNEL);
     if (ts == NULL)
     {
@@ -2689,7 +2692,7 @@ static void goodix_ts_resume(struct goodix_ts_data *ts)
     if (ts->enter_update) {
     	return;
     }
-    GTP_INFO("System resume.");
+    //GTP_INFO("System resume.");
     
     ret = gtp_wakeup_sleep(ts);
 #if GTP_GESTURE_WAKEUP
