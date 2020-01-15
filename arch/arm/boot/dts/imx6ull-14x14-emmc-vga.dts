@@ -1,4 +1,4 @@
-#include "imx6ull-14x14-evk-gpmi-weim.dts"
+#include "imx6ull-14x14-evk-emmc.dts"
 
 &lcdif {
         pinctrl-0 = <&pinctrl_vga_dat
