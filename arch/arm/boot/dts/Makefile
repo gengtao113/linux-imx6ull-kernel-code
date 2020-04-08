@@ -432,6 +432,8 @@ dtb-$(CONFIG_SOC_IMX6ULL) += \
 	imx6ull-14x14-nand-4.3-480x272-c.dtb \
 	imx6ull-14x14-nand-vga.dtb \
 	imx6ull-14x14-nand-hdmi.dtb \
+	imx6ull-alientek-emmc.dtb \
+	imx6ull-alientek-nand.dtb \
 	imx6ull-14x14-evk-usb-certi.dtb \
 	imx6ull-9x9-evk.dtb \
 	imx6ull-9x9-evk-btwifi.dtb \
