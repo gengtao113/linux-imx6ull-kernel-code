@@ -34,5 +34,7 @@ hci_uart-$(CONFIG_BT_HCIUART_3WIRE)	+= hci_h5.o
 hci_uart-$(CONFIG_BT_HCIUART_INTEL)	+= hci_intel.o
 hci_uart-$(CONFIG_BT_HCIUART_BCM)	+= hci_bcm.o
 hci_uart-objs				:= $(hci_uart-y)
+obj-$(CONFIG_BT_RTKBTUSB) += rtk_btusb.o
+rtk_btusb-y := rtk_coex.o rtk_bt.o
 
 ccflags-y += -D__CHECK_ENDIAN__

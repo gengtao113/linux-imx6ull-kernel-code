@@ -66,6 +66,12 @@ config BT_HCIUART_H4
 
 	  Say Y here to compile support for HCI UART (H4) protocol.
 
+config BT_RTKBTUSB
+	tristate "RTK HCI USB driver"
+	depends on USB
+	help
+	RTK Bluetooth HCI USB driver.
+
 config BT_HCIUART_BCSP
 	bool "BCSP protocol support"
 	depends on BT_HCIUART
