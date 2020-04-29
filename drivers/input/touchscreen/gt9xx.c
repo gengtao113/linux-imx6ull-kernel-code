@@ -51,8 +51,9 @@ static s8 gtp_i2c_test(struct i2c_client *client);
 void gtp_reset_guitar(struct i2c_client *client, s32 ms);
 s32 gtp_send_cfg(struct i2c_client *client);
 void gtp_int_sync(s32 ms);
+#if GTP_ESD_PROTECT
 static s32 gtp_i2c_read_no_rst(struct i2c_client *client, u8 *buf, s32 len);
-
+#endif
 static ssize_t gt91xx_config_read_proc(struct file *, char __user *, size_t, loff_t *);
 static ssize_t gt91xx_config_write_proc(struct file *, const char __user *, size_t, loff_t *);
 
@@ -1690,6 +1691,7 @@ static s8 gtp_i2c_test(struct i2c_client *client)
     return ret;
 }
 
+#if 0
 static s8 gtp_i2c_test_no_rst(struct i2c_client *client)
 {
     u8 test[3] = {GTP_REG_CONFIG_DATA >> 8, GTP_REG_CONFIG_DATA & 0xff};
@@ -1710,7 +1712,7 @@ static s8 gtp_i2c_test_no_rst(struct i2c_client *client)
     }
     return ret;
 }
-
+#endif
 /*******************************************************
 Function:
     Request gpio(INT & RST) ports.
@@ -2836,6 +2838,7 @@ static int gtp_unregister_powermanger(struct goodix_ts_data *ts)
 
 /* end */
 
+#if GTP_ESD_PROTECT
 static s32 gtp_i2c_read_no_rst(struct i2c_client *client, u8 *buf, s32 len)
 {
     struct i2c_msg msgs[2];
@@ -2868,7 +2871,6 @@ static s32 gtp_i2c_read_no_rst(struct i2c_client *client, u8 *buf, s32 len)
     }
     return ret;
 }
-#if GTP_ESD_PROTECT
 
 s32 gtp_i2c_write_no_rst(struct i2c_client *client,u8 *buf,s32 len)
 {
