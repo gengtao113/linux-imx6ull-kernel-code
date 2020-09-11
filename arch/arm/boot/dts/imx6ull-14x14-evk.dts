@@ -353,8 +353,8 @@
 	};
 
         goodix_ts@5d {
-                compatible = "goodix,gt9xx";
-                reg = <0x5d>;
+                compatible = "goodix,gt9xx", "goodix,gt1151";
+                reg = <0x14>;
                 status = "disabled";
                 interrupt-parent = <&gpio1>;
                 interrupts = <9 0>;
