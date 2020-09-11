@@ -3088,6 +3088,7 @@ static void gtp_esd_check_func(struct work_struct *work)
 #ifdef GTP_CONFIG_OF
 static const struct of_device_id goodix_match_table[] = {
 		{.compatible = "goodix,gt9xx",},
+		{.compatible = "goodix,gt1151",},
 		{ },
 };
 #endif
