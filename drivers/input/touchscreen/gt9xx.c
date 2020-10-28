@@ -1071,6 +1071,7 @@ void gtp_reset_guitar(struct i2c_client *client, s32 ms)
     msleep(6);                          // T4: > 5ms
 
     GTP_GPIO_AS_INPUT(gtp_rst_gpio);    // end select I2C slave addr
+    GTP_GPIO_OUTPUT(gtp_rst_gpio, 1);   // pull the rst_gpio up
 #endif
 
 #if GTP_COMPATIBLE_MODE
@@ -1778,6 +1779,8 @@ static s8 gtp_request_irq(struct goodix_ts_data *ts)
     GTP_DEBUG_FUNC();
     GTP_DEBUG("INT trigger type:%x", ts->int_trigger_type);
 
+    /* Force set to edge trigger */
+    ts->int_trigger_type = 0;
     ret  = request_irq(ts->client->irq, 
                        goodix_ts_irq_handler,
                        irq_table[ts->int_trigger_type],
