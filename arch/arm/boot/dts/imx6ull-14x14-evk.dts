@@ -295,6 +295,7 @@
 		compatible = "fsl,mag3110";
 		reg = <0x0e>;
 		position = <2>;
+		status = "disabled";
 	};
 
 	ap3216c@1e {

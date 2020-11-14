@@ -238,7 +238,7 @@ static irqreturn_t edt_ft5x06_ts_isr(int irq, void *dev_id)
 		down = type != TOUCH_EVENT_UP;
 
 		input_mt_slot(tsdata->input, id);
-		input_mt_report_slot_state(tsdata->input, MT_TOOL_PEN, down);
+		input_mt_report_slot_state(tsdata->input, MT_TOOL_FINGER, down);
 
 		if (!down)
 			continue;
