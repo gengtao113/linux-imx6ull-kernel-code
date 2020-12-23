@@ -81,12 +81,18 @@ typedef enum
 } CHIP_TYPE_T;
 #endif
 
+struct goodix_chip_data {
+    u16 config_addr;
+    int config_len;
+};
+
 struct goodix_ts_data {
     spinlock_t irq_lock;
     struct i2c_client *client;
     struct input_dev  *input_dev;
     struct hrtimer timer;
     struct work_struct  work;
+    const struct goodix_chip_data *chip;
     s32 irq_is_disable;
     s32 use_irq;
     u16 abs_x_max;
@@ -100,6 +106,8 @@ struct goodix_ts_data {
     int  gtp_cfg_len;
     u8  fw_error;
     u8  pnl_init_error;
+    u16 id;
+    u16 version;
 
 #if   defined(CONFIG_FB)
 	struct notifier_block notifier;
@@ -280,7 +288,8 @@ extern int gtp_int_gpio;
 #define GTP_READ_COOR_ADDR    0x814E
 #define GTP_REG_SLEEP         0x8040
 #define GTP_REG_SENSOR_ID     0x814A
-#define GTP_REG_CONFIG_DATA   0x8047
+#define GTP_GT1X_REG_CONFIG_DATA 0x8050
+#define GTP_GT9X_REG_CONFIG_DATA 0x8047
 #define GTP_REG_VERSION       0x8140
 
 #define RESOLUTION_LOC        3

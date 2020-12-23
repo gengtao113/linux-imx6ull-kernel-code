@@ -19,6 +19,7 @@
  */
 #include <linux/irq.h>
 #include "gt9xx.h"
+#include <asm/unaligned.h>
 #define FT_REG_THGROUP          0x80
 #define FT_REG_POINT_RATE       0x88
 
@@ -33,8 +34,7 @@ static struct workqueue_struct *goodix_wq;
 struct i2c_client * i2c_connect_client = NULL; 
 int gtp_rst_gpio;
 int gtp_int_gpio;
-u8 config[GTP_CONFIG_MAX_LENGTH + GTP_ADDR_LENGTH]
-                = {GTP_REG_CONFIG_DATA >> 8, GTP_REG_CONFIG_DATA & 0xff};
+u8 config[GTP_CONFIG_MAX_LENGTH + GTP_ADDR_LENGTH];
 
 #if GTP_HAVE_TOUCH_KEY
     static const u16 touch_key_array[] = GTP_KEY_TAB;
@@ -47,7 +47,7 @@ u8 config[GTP_CONFIG_MAX_LENGTH + GTP_ADDR_LENGTH]
     
 #endif
 
-static s8 gtp_i2c_test(struct i2c_client *client);
+static s8 gtp_i2c_test(struct i2c_client *client, struct goodix_ts_data *ts);
 void gtp_reset_guitar(struct i2c_client *client, s32 ms);
 s32 gtp_send_cfg(struct i2c_client *client);
 void gtp_int_sync(s32 ms);
@@ -114,6 +114,64 @@ static s8 gtp_enter_doze(struct goodix_ts_data *ts);
 #ifdef GTP_CONFIG_OF
 int gtp_parse_dt_cfg(struct device *dev, u8 *cfg, int *cfg_len, u8 sid);
 #endif
+
+
+static const struct goodix_chip_data gt1x_chip_data = {
+    .config_addr        = GTP_GT1X_REG_CONFIG_DATA,
+    .config_len     = GTP_CONFIG_MAX_LENGTH,
+};
+
+static const struct goodix_chip_data gt9x_chip_data = {
+    .config_addr        = GTP_GT9X_REG_CONFIG_DATA,
+    .config_len     = GTP_CONFIG_MAX_LENGTH,
+};
+
+static const struct goodix_chip_data *goodix_get_chip_data(u16 id)
+{
+    switch (id) {
+    case 1151:
+    case 1158:
+    case 5663:
+    case 5688:
+	config[0] = GTP_GT1X_REG_CONFIG_DATA >> 8;
+	config[1] = GTP_GT1X_REG_CONFIG_DATA & 0xff;
+        return &gt1x_chip_data;
+    default:
+	config[0] = GTP_GT9X_REG_CONFIG_DATA >> 8;
+	config[1] = GTP_GT9X_REG_CONFIG_DATA & 0xff;
+        return &gt9x_chip_data;
+    }
+}
+
+
+/**
+ * goodix_i2c_read - read data from a register of the i2c slave device.
+ *
+ * @client: i2c device.
+ * @reg: the register to read from.
+ * @buf: raw write data buffer.
+ * @len: length of the buffer to write
+ */
+static int goodix_i2c_read(struct i2c_client *client,
+               u16 reg, u8 *buf, int len)
+{
+    struct i2c_msg msgs[2];
+    __be16 wbuf = cpu_to_be16(reg);
+    int ret;
+
+    msgs[0].flags = 0;
+    msgs[0].addr  = client->addr;
+    msgs[0].len   = 2;
+    msgs[0].buf   = (u8 *)&wbuf;
+
+    msgs[1].flags = I2C_M_RD;
+    msgs[1].addr  = client->addr;
+    msgs[1].len   = len;
+    msgs[1].buf   = buf;
+
+    ret = i2c_transfer(client->adapter, msgs, 2);
+    return ret < 0 ? ret : (ret != ARRAY_SIZE(msgs) ? -EIO : 0);
+}
 
 /*******************************************************
 Function:
@@ -1289,7 +1347,7 @@ static s8 gtp_wakeup_sleep(struct goodix_ts_data * ts)
         msleep(5);
     #endif
     
-        ret = gtp_i2c_test(ts->client);
+        ret = gtp_i2c_test(ts->client, ts);
         if (ret > 0)
         {
             //GTP_INFO("GTP wakeup sleep.");
@@ -1436,7 +1494,7 @@ static s32 gtp_init_panel(struct goodix_ts_data *ts)
 	if (ts->chip_type != CHIP_TYPE_GT9F)
 #endif
 	{
-	    ret = gtp_i2c_read_dbl_check(ts->client, GTP_REG_CONFIG_DATA, &opr_buf[0], 1);
+	    ret = gtp_i2c_read_dbl_check(ts->client, ts->chip->config_addr, &opr_buf[0], 1);
 	    if (ret == SUCCESS) {
 	        GTP_DEBUG("Config Version: %d, 0x%02X; IC Config Version: %d, 0x%02X",
 	                    config[GTP_ADDR_LENGTH], config[GTP_ADDR_LENGTH], opr_buf[0], opr_buf[0]);
@@ -1504,12 +1562,12 @@ static s32 gtp_init_panel(struct goodix_ts_data *ts)
         u8 driver_num = 0;
         u8 have_key = 0;
         
-        have_key = (config[GTP_REG_HAVE_KEY - GTP_REG_CONFIG_DATA + 2] & 0x01);
+        have_key = (config[GTP_REG_HAVE_KEY - ts->chip->config_addr + 2] & 0x01);
         
         if (1 == ts->is_950)
         {
-            driver_num = config[GTP_REG_MATRIX_DRVNUM - GTP_REG_CONFIG_DATA + 2];
-            sensor_num = config[GTP_REG_MATRIX_SENNUM - GTP_REG_CONFIG_DATA + 2];
+            driver_num = config[GTP_REG_MATRIX_DRVNUM - ts->chip->config_addr + 2];
+            sensor_num = config[GTP_REG_MATRIX_SENNUM - ts->chip->config_addr + 2];
             if (have_key)
             {
                 driver_num--;
@@ -1634,32 +1692,29 @@ Output:
     read operation return.
         2: succeed, otherwise: failed
 *******************************************************/
-s32 gtp_read_version(struct i2c_client *client, u16* version)
+s32 gtp_read_version(struct goodix_ts_data *ts)
 {
-    s32 ret = -1;
-    u8 buf[8] = {GTP_REG_VERSION >> 8, GTP_REG_VERSION & 0xff};
-    GTP_DEBUG_FUNC();
+    int error;
+    u8 buf[6];
+    char id_str[5];
 
-    ret = gtp_i2c_read(client, buf, sizeof(buf));
-    if (ret < 0)
-    {
-        GTP_ERROR("GTP read version failed");
-        return ret;
+    error = goodix_i2c_read(ts->client, GTP_REG_VERSION, buf, sizeof(buf));
+    if (error) {
+        dev_err(&ts->client->dev, "read version failed: %d\n", error);
+        return error;
     }
 
-    if (version)
-    {
-        *version = (buf[7] << 8) | buf[6];
-    }
-    if (buf[5] == 0x00)
-    {
-        GTP_INFO("IC Version: %c%c%c_%02x%02x", buf[2], buf[3], buf[4], buf[7], buf[6]);
-    }
-    else
-    {
-        GTP_INFO("IC Version: %c%c%c%c_%02x%02x", buf[2], buf[3], buf[4], buf[5], buf[7], buf[6]);
-    }
-    return ret;
+    memcpy(id_str, buf, 4);
+    id_str[4] = 0;
+    if (kstrtou16(id_str, 10, &ts->id))
+        ts->id = 0x1001;
+
+    ts->version = get_unaligned_le16(&buf[4]);
+
+    dev_info(&ts->client->dev, "ID %d, version: %04x\n", ts->id,
+         ts->version);
+
+    return 0;
 }
 
 /*******************************************************
@@ -1671,9 +1726,9 @@ Output:
     Executive outcomes.
         2: succeed, otherwise failed.
 *******************************************************/
-static s8 gtp_i2c_test(struct i2c_client *client)
+static s8 gtp_i2c_test(struct i2c_client *client, struct goodix_ts_data *ts)
 {
-    u8 test[3] = {GTP_REG_CONFIG_DATA >> 8, GTP_REG_CONFIG_DATA & 0xff};
+    u8 test[3] = {ts->chip->config_addr >> 8, ts->chip->config_addr & 0xff};
     u8 retry = 0;
     s8 ret = -1;
   
@@ -1695,7 +1750,7 @@ static s8 gtp_i2c_test(struct i2c_client *client)
 #if 0
 static s8 gtp_i2c_test_no_rst(struct i2c_client *client)
 {
-    u8 test[3] = {GTP_REG_CONFIG_DATA >> 8, GTP_REG_CONFIG_DATA & 0xff};
+    u8 test[3] = {ts->chip->config_addr >> 8, ts->chip->config_addr & 0xff};
     u8 retry = 0;
     s8 ret = -1;
   
@@ -1779,8 +1834,6 @@ static s8 gtp_request_irq(struct goodix_ts_data *ts)
     GTP_DEBUG_FUNC();
     GTP_DEBUG("INT trigger type:%x", ts->int_trigger_type);
 
-    /* Force set to edge trigger */
-    ts->int_trigger_type = 0;
     ret  = request_irq(ts->client->irq, 
                        goodix_ts_irq_handler,
                        irq_table[ts->int_trigger_type],
@@ -2428,7 +2481,6 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 {
     s32 ret = -1;
     struct goodix_ts_data *ts;
-    u16 version_info;
     
     GTP_DEBUG_FUNC();
     
@@ -2444,7 +2496,7 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
         return -ENODEV;
     }
 #if 0
-    ret = gtp_i2c_test_no_rst(client);
+    ret = gtp_i2c_test_no_rst(client, ts);
     if(ret < 0)
     {
 	GTP_ERROR("I2C read failed.");
@@ -2507,18 +2559,20 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
     }
 #endif
 
-    ret = gtp_i2c_test(client);
-    if (ret < 0)
-    {
-        GTP_ERROR("I2C communication ERROR!");
-        goto free_ts;
-    }
-
-    ret = gtp_read_version(client, &version_info);
+    ret = gtp_read_version(ts);
     if (ret < 0)
     {
         GTP_ERROR("Read version failed.");
     }
+
+    ts->chip = goodix_get_chip_data(ts->id);
+
+    /*ret = gtp_i2c_test(client, ts);
+    if (ret < 0)
+    {
+        GTP_ERROR("I2C communication ERROR!");
+        goto free_ts;
+    }*/
     
     ret = gtp_init_panel(ts);
     if (ret < 0)
