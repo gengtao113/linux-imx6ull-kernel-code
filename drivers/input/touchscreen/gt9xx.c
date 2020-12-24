@@ -2567,12 +2567,12 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 
     ts->chip = goodix_get_chip_data(ts->id);
 
-    /*ret = gtp_i2c_test(client, ts);
+    ret = gtp_i2c_test(client, ts);
     if (ret < 0)
     {
         GTP_ERROR("I2C communication ERROR!");
         goto free_ts;
-    }*/
+    }
     
     ret = gtp_init_panel(ts);
     if (ret < 0)
