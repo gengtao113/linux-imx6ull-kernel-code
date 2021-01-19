@@ -273,6 +273,18 @@ static struct mx6s_fmt formats[] = {
 		.pixelformat	= V4L2_PIX_FMT_SBGGR8,
 		.mbus_code	= MEDIA_BUS_FMT_SBGGR8_1X8,
 		.bpp		= 1,
+	}, {
+		.name		= "RGB565",
+		.fourcc		= V4L2_PIX_FMT_RGB565,
+		.pixelformat	= V4L2_PIX_FMT_RGB565,
+		.mbus_code	= MEDIA_BUS_FMT_RGB565_2X8_LE,
+		.bpp		= 2,
+	}, {
+		.name		= "JPEG",
+		.fourcc		= V4L2_PIX_FMT_JPEG,
+		.pixelformat	= V4L2_PIX_FMT_JPEG,
+		.mbus_code	= MEDIA_BUS_FMT_JPEG_1X8,
+		.bpp		= 2,
 	}
 };
 
@@ -808,6 +820,8 @@ static int mx6s_configure_csi(struct mx6s_csi_dev *csi_dev)
 		break;
 	case V4L2_PIX_FMT_UYVY:
 	case V4L2_PIX_FMT_YUYV:
+	case V4L2_PIX_FMT_RGB565:
+	case V4L2_PIX_FMT_JPEG:
 		if (csi_dev->csi_mux_mipi == true)
 			width = pix->width;
 		else

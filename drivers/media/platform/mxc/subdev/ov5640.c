@@ -116,6 +116,16 @@ struct ov5640 {
 	void (*io_init)(void);
 };
 
+enum ov5640_format_mux {
+    OV5640_FMT_MUX_YUV422 = 0,
+    OV5640_FMT_MUX_RGB,
+    OV5640_FMT_MUX_DITHER,
+    OV5640_FMT_MUX_RAW_DPC,
+    OV5640_FMT_MUX_SNR_RAW,
+    OV5640_FMT_MUX_RAW_CIP,
+};
+
+
 /*!
  * Maintains the information on the current state of the sesor.
  */
@@ -614,8 +624,28 @@ static struct i2c_driver ov5640_i2c_driver = {
 };
 
 static const struct ov5640_datafmt ov5640_colour_fmts[] = {
-	{MEDIA_BUS_FMT_YUYV8_2X8, V4L2_COLORSPACE_JPEG},
+	{ MEDIA_BUS_FMT_RGB565_2X8_LE, V4L2_COLORSPACE_SRGB, },
+	{ MEDIA_BUS_FMT_JPEG_1X8, V4L2_COLORSPACE_JPEG },
+	{ MEDIA_BUS_FMT_YUYV8_2X8, V4L2_COLORSPACE_JPEG},
 };
+
+static int ov5640_mod_reg(u16 reg,
+              u8 mask, u8 val)
+{
+    u8 readval;
+    int ret;
+
+    ret = ov5640_read_reg( reg, &readval);
+    if (ret)
+        return ret;
+
+    readval &= ~mask;
+    val &= mask;
+    val |= readval;
+
+    return ov5640_write_reg(reg, val);
+}
+
 
 static struct ov5640 *to_ov5640(const struct i2c_client *client)
 {
@@ -1524,11 +1554,76 @@ error:
 	return ret;
 }
 
+static int ov5640_set_framefmt(struct v4l2_mbus_framefmt *mf)
+{
+    int ret = 0;
+    bool is_jpeg = false;
+    u8 fmt, mux;
+
+    switch (mf->code) {
+    case MEDIA_BUS_FMT_YUYV8_2X8:
+        /* YUV422, YUYV */
+        fmt = 0x30;
+        mux = OV5640_FMT_MUX_YUV422;
+        break;
+    case MEDIA_BUS_FMT_RGB565_2X8_LE:
+        /* RGB565 {g[2:0],b[4:0]},{r[4:0],g[5:3]} */
+        fmt = 0x6F;
+        mux = OV5640_FMT_MUX_RGB;
+        break;
+    case MEDIA_BUS_FMT_JPEG_1X8:
+        /* YUV422, YUYV */
+        fmt = 0x30;
+        mux = OV5640_FMT_MUX_YUV422;
+        is_jpeg = true;
+        break;
+    default:
+        return -EINVAL;
+    }
+    /* FORMAT CONTROL00: YUV and RGB formatting */
+    ret = ov5640_write_reg(0x4300, fmt);
+    if (ret)
+        return ret;
+
+    /* FORMAT MUX CONTROL: ISP YUV or RGB */
+    ret = ov5640_write_reg(0x501f, mux);
+    if (ret)
+        return ret;
+
+    /*
+     * TIMING TC REG21:
+     * - [5]:   JPEG enable
+     */
+    ret = ov5640_mod_reg(0x3821,
+                 BIT(5), is_jpeg ? BIT(5) : 0);
+    if (ret)
+        return ret;
+
+    /*
+     * SYSTEM RESET02:
+     * - [4]:   Reset JFIFO
+     * - [3]:   Reset SFIFO
+     * - [2]:   Reset JPEG
+     */
+    ret = ov5640_mod_reg(0x3002,
+                 BIT(4) | BIT(3) | BIT(2),
+                 is_jpeg ? 0 : (BIT(4) | BIT(3) | BIT(2)));
+    if (ret)
+        return ret;
+
+    /*
+     * CLOCK ENABLE02:
+     * - [5]:   Enable JPEG 2x clock
+     * - [3]:   Enable JPEG clock
+     */
+    return ov5640_mod_reg(0x3006,
+                  BIT(5) | BIT(3),
+                  is_jpeg ? (BIT(5) | BIT(3)) : 0);
+}
 static int ov5640_try_fmt(struct v4l2_subdev *sd,
 			  struct v4l2_mbus_framefmt *mf)
 {
 	const struct ov5640_datafmt *fmt = ov5640_find_datafmt(mf->code);
-
 	if (!fmt) {
 		mf->code	= ov5640_colour_fmts[0].code;
 		mf->colorspace	= ov5640_colour_fmts[0].colorspace;
@@ -1550,6 +1645,9 @@ static int ov5640_s_fmt(struct v4l2_subdev *sd,
 		return -EINVAL;
 
 	ov5640_try_fmt(sd, mf);
+
+	ov5640_set_framefmt(mf);
+
 	sensor->fmt = ov5640_find_datafmt(mf->code);
 
 	return 0;
@@ -1809,7 +1907,7 @@ static int ov5640_probe(struct i2c_client *client,
 
 	ov5640_data.io_init = ov5640_reset;
 	ov5640_data.i2c_client = client;
-	ov5640_data.pix.pixelformat = V4L2_PIX_FMT_YUYV;
+	ov5640_data.pix.pixelformat = V4L2_PIX_FMT_RGB565;
 	ov5640_data.pix.width = 640;
 	ov5640_data.pix.height = 480;
 	ov5640_data.streamcap.capability = V4L2_MODE_HIGHQUALITY |
