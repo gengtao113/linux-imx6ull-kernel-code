@@ -30,6 +30,7 @@
 #include <media/v4l2-ctrls.h>
 #include <media/v4l2-subdev.h>
 #include <media/v4l2-image-sizes.h>
+#include <linux/of_gpio.h>
 
 /*
  * register offset
@@ -401,6 +402,9 @@ struct ov772x_priv {
 	unsigned short                    flag_hflip:1;
 	/* band_filter = COM8[5] ? 256 - BDBASE : 0 */
 	unsigned short                    band_filter;
+        struct soc_camera_subdev_desc   ssdd_dt;
+        struct gpio_desc *resetb_gpio;
+        struct gpio_desc *pwdn_gpio;
 };
 
 /*
@@ -415,6 +419,7 @@ static const struct ov772x_color_format ov772x_cfmts[] = {
 		.com3		= SWAP_YUV,
 		.com7		= OFMT_YUV,
 	},
+#if 0
 	{
 		.code		= MEDIA_BUS_FMT_YVYU8_2X8,
 		.colorspace	= V4L2_COLORSPACE_JPEG,
@@ -423,6 +428,7 @@ static const struct ov772x_color_format ov772x_cfmts[] = {
 		.com3		= SWAP_YUV,
 		.com7		= OFMT_YUV,
 	},
+#endif
 	{
 		.code		= MEDIA_BUS_FMT_UYVY8_2X8,
 		.colorspace	= V4L2_COLORSPACE_JPEG,
@@ -431,6 +437,7 @@ static const struct ov772x_color_format ov772x_cfmts[] = {
 		.com3		= 0x0,
 		.com7		= OFMT_YUV,
 	},
+#if 0
 	{
 		.code		= MEDIA_BUS_FMT_RGB555_2X8_PADHI_LE,
 		.colorspace	= V4L2_COLORSPACE_SRGB,
@@ -447,6 +454,7 @@ static const struct ov772x_color_format ov772x_cfmts[] = {
 		.com3		= 0x0,
 		.com7		= FMT_RGB555 | OFMT_RGB,
 	},
+#endif
 	{
 		.code		= MEDIA_BUS_FMT_RGB565_2X8_LE,
 		.colorspace	= V4L2_COLORSPACE_SRGB,
@@ -463,6 +471,7 @@ static const struct ov772x_color_format ov772x_cfmts[] = {
 		.com3		= 0x0,
 		.com7		= FMT_RGB565 | OFMT_RGB,
 	},
+#if 0
 	{
 		/* Setting DSP4 to DSP_OFMT_RAW8 still gives 10-bit output,
 		 * regardless of the COM7 value. We can thus only support 10-bit
@@ -475,6 +484,7 @@ static const struct ov772x_color_format ov772x_cfmts[] = {
 		.com3		= 0x0,
 		.com7		= SENSOR_RAW | OFMT_BRAW,
 	},
+#endif
 };
 
 
@@ -508,14 +518,26 @@ static const struct ov772x_win_size ov772x_win_sizes[] = {
  * general function
  */
 
-static struct ov772x_priv *to_ov772x(struct v4l2_subdev *sd)
+static struct ov772x_priv *to_ov772x(const struct i2c_client *client)
 {
-	return container_of(sd, struct ov772x_priv, subdev);
+        return container_of(i2c_get_clientdata(client), struct ov772x_priv,
+                            subdev);
 }
 
-static inline int ov772x_read(struct i2c_client *client, u8 addr)
+static  int ov772x_read(struct i2c_client *client, u8 addr)
 {
-	return i2c_smbus_read_byte_data(client, addr);
+	int ret;
+	u8 val;
+
+	ret = i2c_master_send(client, &addr, 1);
+	if (ret < 0)
+		return ret;
+	ret = i2c_master_recv(client, &val, 1);
+	if (ret < 0)
+                return ret;
+
+	return val;
+
 }
 
 static inline int ov772x_write(struct i2c_client *client, u8 addr, u8 value)
@@ -555,8 +577,9 @@ static int ov772x_reset(struct i2c_client *client)
 
 static int ov772x_s_stream(struct v4l2_subdev *sd, int enable)
 {
+#if 0
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
-	struct ov772x_priv *priv = to_ov772x(sd);
+	struct ov772x_priv *priv = to_ov772x(client);
 
 	if (!enable) {
 		ov772x_mask_set(client, COM2, SOFT_SLEEP_MODE, SOFT_SLEEP_MODE);
@@ -567,7 +590,7 @@ static int ov772x_s_stream(struct v4l2_subdev *sd, int enable)
 
 	dev_dbg(&client->dev, "format %d, win %s\n",
 		priv->cfmt->code, priv->win->name);
-
+#endif
 	return 0;
 }
 
@@ -654,7 +677,7 @@ static int ov772x_s_power(struct v4l2_subdev *sd, int on)
 {
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	struct soc_camera_subdev_desc *ssdd = soc_camera_i2c_to_desc(client);
-	struct ov772x_priv *priv = to_ov772x(sd);
+	struct ov772x_priv *priv = to_ov772x(client);
 
 	return soc_camera_set_power(&client->dev, ssdd, priv->clk, on);
 }
@@ -706,10 +729,10 @@ static int ov772x_set_params(struct ov772x_priv *priv,
 	u8  val;
 
 	/*
-	 * reset hardware
+	 * do not reset hardware if not necessary
+	 *
+	 * ov772x_reset(client);
 	 */
-	ov772x_reset(client);
-
 	/*
 	 * Edge Ctrl
 	 */
@@ -721,7 +744,6 @@ static int ov772x_set_params(struct ov772x_priv *priv,
 		 * Edge auto strength bit is set by default.
 		 * Remove it when manual mode.
 		 */
-
 		ret = ov772x_mask_set(client, DSPAUTO, EDGE_ACTRL, 0x00);
 		if (ret < 0)
 			goto ov772x_set_fmt_error;
@@ -879,7 +901,8 @@ static int ov772x_cropcap(struct v4l2_subdev *sd, struct v4l2_cropcap *a)
 static int ov772x_g_fmt(struct v4l2_subdev *sd,
 			struct v4l2_mbus_framefmt *mf)
 {
-	struct ov772x_priv *priv = to_ov772x(sd);
+	struct i2c_client  *client = v4l2_get_subdevdata(sd);
+	struct ov772x_priv *priv = to_ov772x(client);
 
 	mf->width	= priv->win->rect.width;
 	mf->height	= priv->win->rect.height;
@@ -892,7 +915,8 @@ static int ov772x_g_fmt(struct v4l2_subdev *sd,
 
 static int ov772x_s_fmt(struct v4l2_subdev *sd, struct v4l2_mbus_framefmt *mf)
 {
-	struct ov772x_priv *priv = to_ov772x(sd);
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct ov772x_priv *priv = to_ov772x(client);
 	const struct ov772x_color_format *cfmt;
 	const struct ov772x_win_size *win;
 	int ret;
@@ -932,9 +956,9 @@ static int ov772x_try_fmt(struct v4l2_subdev *sd,
 	return 0;
 }
 
-static int ov772x_video_probe(struct ov772x_priv *priv)
+static int ov772x_video_probe(struct i2c_client *client)
 {
-	struct i2c_client  *client = v4l2_get_subdevdata(&priv->subdev);
+	struct ov772x_priv *priv = to_ov772x(client);
 	u8                  pid, ver;
 	const char         *devname;
 	int		    ret;
@@ -942,7 +966,6 @@ static int ov772x_video_probe(struct ov772x_priv *priv)
 	ret = ov772x_s_power(&priv->subdev, 1);
 	if (ret < 0)
 		return ret;
-
 	/*
 	 * check and show product ID and manufacturer ID
 	 */
@@ -1030,6 +1053,70 @@ static struct v4l2_subdev_ops ov772x_subdev_ops = {
 	.video	= &ov772x_subdev_video_ops,
 };
 
+/* OF probe functions */
+static int ov772x_hw_power(struct device *dev, int on)
+{
+        struct i2c_client *client = to_i2c_client(dev);
+        struct ov772x_priv *priv = to_ov772x(client);
+
+        dev_dbg(&client->dev, "%s: %s the camera\n",
+                        __func__, on ? "ENABLE" : "DISABLE");
+
+        if (priv->pwdn_gpio)
+                gpiod_direction_output(priv->pwdn_gpio, !on);
+
+        return 0;
+}
+
+static int ov772x_hw_reset(struct device *dev)
+{
+        struct i2c_client *client = to_i2c_client(dev);
+        struct ov772x_priv *priv = to_ov772x(client);
+
+	if (priv->pwdn_gpio) {
+		gpiod_direction_output(priv->pwdn_gpio, 1);
+		usleep_range(500, 1000);
+	}
+
+        if (priv->resetb_gpio) {
+                /* Active the resetb pin to perform a reset pulse */
+                gpiod_set_value(priv->resetb_gpio, 1);
+                usleep_range(500, 1000);
+                gpiod_set_value(priv->resetb_gpio, 0);
+                usleep_range(500, 1000);
+        }
+
+        return 0;
+}
+
+static int ov772x_probe_dt(struct i2c_client *client,
+                struct ov772x_priv *priv)
+{
+        /* Request the reset GPIO deasserted */
+        priv->resetb_gpio = devm_gpiod_get_optional(&client->dev, "resetb",
+                        GPIOD_OUT_LOW);
+        if (!priv->resetb_gpio)
+                dev_dbg(&client->dev, "resetb gpio is not assigned!\n");
+        else if (IS_ERR(priv->resetb_gpio))
+                return PTR_ERR(priv->resetb_gpio);
+
+        /* Request the power down GPIO asserted */
+        priv->pwdn_gpio = devm_gpiod_get_optional(&client->dev, "pwdn",
+                        GPIOD_OUT_HIGH);
+        if (!priv->pwdn_gpio)
+                dev_dbg(&client->dev, "pwdn gpio is not assigned!\n");
+        else if (IS_ERR(priv->pwdn_gpio))
+                return PTR_ERR(priv->pwdn_gpio);
+
+        /* Initialize the soc_camera_subdev_desc */
+        priv->ssdd_dt.power = ov772x_hw_power;
+        priv->ssdd_dt.reset = ov772x_hw_reset;
+        client->dev.platform_data = &priv->ssdd_dt;
+	priv->info = client->dev.platform_data;
+
+        return 0;
+}
+
 /*
  * i2c_driver function
  */
@@ -1042,7 +1129,7 @@ static int ov772x_probe(struct i2c_client *client,
 	struct i2c_adapter	*adapter = to_i2c_adapter(client->dev.parent);
 	int			ret;
 
-	if (!ssdd || !ssdd->drv_priv) {
+	if (!ssdd && !client->dev.of_node) {
 		dev_err(&client->dev, "OV772X: missing platform data!\n");
 		return -EINVAL;
 	}
@@ -1057,8 +1144,6 @@ static int ov772x_probe(struct i2c_client *client,
 	priv = devm_kzalloc(&client->dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
 		return -ENOMEM;
-
-	priv->info = ssdd->drv_priv;
 
 	v4l2_i2c_subdev_init(&priv->subdev, client, &ov772x_subdev_ops);
 	v4l2_ctrl_handler_init(&priv->hdl, 3);
@@ -1078,14 +1163,29 @@ static int ov772x_probe(struct i2c_client *client,
 		goto eclkget;
 	}
 
-	ret = ov772x_video_probe(priv);
+        if (!ssdd) {
+                ret = ov772x_probe_dt(client, priv);
+                if (ret)
+                        goto eclkget;
+        }
+
+	/* set Output drive capability 1x */
+	ret = ov772x_write(client, COM2, OCAP_1x);
+	if (ret < 0)
+		goto eclkget;
+
+	ret = ov772x_video_probe(client);
 	if (ret < 0) {
 		v4l2_clk_put(priv->clk);
+
 eclkget:
 		v4l2_ctrl_handler_free(&priv->hdl);
 	} else {
 		priv->cfmt = &ov772x_cfmts[0];
 		priv->win = &ov772x_win_sizes[0];
+
+		ret = v4l2_async_register_subdev(&priv->subdev);
+		dev_info(&adapter->dev, "OV772x Probed\n");
 	}
 
 	return ret;
@@ -1107,9 +1207,18 @@ static const struct i2c_device_id ov772x_id[] = {
 };
 MODULE_DEVICE_TABLE(i2c, ov772x_id);
 
+static const struct of_device_id ov772x_of_match[] = {
+        { .compatible = "ovti,ov7725", },
+        { .compatible = "ovti,ov772x", },
+        { .compatible = "ovti,ov7720", },
+        { /* sentinel */ },
+};
+MODULE_DEVICE_TABLE(of, ov772x_of_match);
+
 static struct i2c_driver ov772x_i2c_driver = {
 	.driver = {
 		.name = "ov772x",
+		.of_match_table = ov772x_of_match,
 	},
 	.probe    = ov772x_probe,
 	.remove   = ov772x_remove,

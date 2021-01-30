@@ -274,10 +274,16 @@ static struct mx6s_fmt formats[] = {
 		.mbus_code	= MEDIA_BUS_FMT_SBGGR8_1X8,
 		.bpp		= 1,
 	}, {
-		.name		= "RGB565",
+		.name		= "RGB565_LE",
 		.fourcc		= V4L2_PIX_FMT_RGB565,
 		.pixelformat	= V4L2_PIX_FMT_RGB565,
 		.mbus_code	= MEDIA_BUS_FMT_RGB565_2X8_LE,
+		.bpp		= 2,
+	}, {
+		.name		= "RGB565_BE",
+		.fourcc		= V4L2_PIX_FMT_RGB565,
+		.pixelformat	= V4L2_PIX_FMT_RGB565,
+		.mbus_code	= MEDIA_BUS_FMT_RGB565_2X8_BE,
 		.bpp		= 2,
 	}, {
 		.name		= "JPEG",
