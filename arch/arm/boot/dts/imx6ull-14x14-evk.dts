@@ -11,6 +11,9 @@
 #include <dt-bindings/input/input.h>
 #include "imx6ull.dtsi"
 
+#define ATK_CAMERA_ON 1
+#define ATK_CAMERA_OFF 0
+
 / {
 	model = "Freescale i.MX6 ULL 14x14 EVK Board";
 	compatible = "fsl,imx6ull-14x14-evk", "fsl,imx6ull";
@@ -206,8 +209,8 @@
 	status = "okay";
 
 	port {
-		csi1_ep: endpoint {
-			remote-endpoint = <&ov5640_ep>;
+		csi_ep: endpoint {
+			remote-endpoint = <&camera_ep>;
 		};
 	};
 };
@@ -318,6 +321,7 @@
 		wlf,shared-lrclk;
 	};
 
+#if ATK_CAMERA_ON
 	ov5640: ov5640@3c {
 		compatible = "ovti,ov5640";
 		reg = <0x3c>;
@@ -333,12 +337,58 @@
 		mclk_source = <0>;
 		status = "okay";
 		port {
-			ov5640_ep: endpoint {
-				remote-endpoint = <&csi1_ep>;
+			camera_ep: endpoint {
+				remote-endpoint = <&csi_ep>;
 			};
 		};
 	};
+#endif
 
+#if ATK_CAMERA_OFF
+        ov2640: camera@0x30 {
+                compatible = "ovti,ov2640";
+                reg = <0x30>;
+                status = "okay";
+
+                pinctrl-names = "default";
+                pinctrl-0 = <&pinctrl_csi1
+                             &csi_pwn_rst>;
+                resetb = <&gpio1 2 GPIO_ACTIVE_LOW>;
+                pwdn = <&gpio1 4 GPIO_ACTIVE_HIGH>;
+                clocks = <&clks IMX6UL_CLK_CSI>;
+                clock-names = "xvclk";
+
+                port {
+                        camera_ep: endpoint {
+                                remote-endpoint = <&csi_ep>;
+				bus-width = <8>;
+                        };
+                };
+        };
+#endif
+
+#if ATK_CAMERA_OFF
+        ov7725: camera@0x21 {
+                compatible = "ovti,ov772x","ovti,ov7725";
+                reg = <0x21>;
+                status = "okay";
+                pinctrl-names = "default";
+                pinctrl-0 = <&pinctrl_csi1
+                             &csi_pwn_rst>;
+                resetb = <&gpio1 2 GPIO_ACTIVE_LOW>;
+                pwdn = <&gpio1 4 GPIO_ACTIVE_HIGH>;
+                clocks = <&clks IMX6UL_CLK_CSI>;
+                clock-frequency = <20000000>;
+                clock-names = "mclk";
+
+                port {
+                        camera_ep: endpoint {
+                                remote-endpoint = <&csi>;
+				bus-width = <8>;
+                        };
+                };
+        };
+#endif
         edt-ft5x06@38 {
 		compatible = "edt,edt-ft5306", "edt,edt-ft5x06";
 		pinctrl-names = "default";
