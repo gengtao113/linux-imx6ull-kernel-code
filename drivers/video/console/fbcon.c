@@ -77,6 +77,8 @@
 #include <linux/crc32.h> /* For counting font checksums */
 #include <asm/fb.h>
 #include <asm/irq.h>
+#include <linux/backlight.h>
+#include <linux/delay.h>
 
 #include "fbcon.h"
 
@@ -172,6 +174,7 @@ static int fbcon_switch(struct vc_data *vc);
 static int fbcon_blank(struct vc_data *vc, int blank, int mode_switch);
 static int fbcon_set_palette(struct vc_data *vc, unsigned char *table);
 static int fbcon_scrolldelta(struct vc_data *vc, int lines);
+static int backlight_update(void);
 
 /*
  *  Internal routines
@@ -2292,9 +2295,32 @@ static int fbcon_switch(struct vc_data *vc)
 			      vc->vc_origin + vc->vc_size_row * vc->vc_top,
 			      vc->vc_size_row * (vc->vc_bottom -
 						 vc->vc_top) / 2);
+		backlight_update();
 		return 0;
 	}
 	return 1;
+}
+
+static int backlight_update(void)
+{
+	int ret;
+	u32 value = 0;
+	struct device_node *np = of_find_node_by_path("/backlight");
+	struct backlight_device *bd = of_find_backlight_by_node(np);
+
+	ret = of_property_read_u32(np, "default-brightness-level",
+                                           &value);
+	if (ret < 0) {
+		dev_err(NULL, "failed to get default-brightness-level\n");
+
+		return ret;
+	}
+
+	bd->props.brightness = value;
+	msleep(15);
+	bd->ops->update_status(bd);
+
+	return ret;
 }
 
 static void fbcon_generic_blank(struct vc_data *vc, struct fb_info *info,

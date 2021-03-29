@@ -341,7 +341,9 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 		data->dft_brightness = data->max_brightness;
 	}
 
-	bl->props.brightness = data->dft_brightness;
+	/* bl->props.brightness = data->dft_brightness; */
+	/* Force the backlight off, in drivers/video/console/fbcon.c turn on */
+	bl->props.brightness = 0;
 	backlight_update_status(bl);
 
 	platform_set_drvdata(pdev, bl);
