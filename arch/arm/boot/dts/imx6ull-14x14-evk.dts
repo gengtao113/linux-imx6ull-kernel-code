@@ -907,6 +907,10 @@
 	status = "okay";
 };
 
+&snvs_poweroff {
+	status = "disabled";
+};
+
 &tsc {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_tsc>;
