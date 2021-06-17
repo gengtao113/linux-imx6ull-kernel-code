@@ -22,6 +22,18 @@
 		stdout-path = &uart1;
 	};
 
+	dht11 {
+		compatible = "alientek, dht11";
+		dht11-gpio = <&gpio1 1 GPIO_ACTIVE_LOW>;
+		status = "okay";
+	};
+
+	ds18b20 {
+		compatible = "alientek, ds18b20";
+		ds18b20-gpio = <&gpio1 1 GPIO_ACTIVE_LOW>;
+		status = "okay";
+	};
+
 	memory {
 		reg = <0x80000000 0x20000000>;
 	};
