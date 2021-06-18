@@ -24,12 +24,16 @@
 
 	dht11 {
 		compatible = "alientek, dht11";
+		pinctrl-names = "default";
+                pinctrl-0 = <&pinctrl_dht11>;
 		dht11-gpio = <&gpio1 1 GPIO_ACTIVE_LOW>;
 		status = "okay";
 	};
 
 	ds18b20 {
 		compatible = "alientek, ds18b20";
+		pinctrl-names = "default";
+                pinctrl-0 = <&pinctrl_ds18b20>;
 		ds18b20-gpio = <&gpio1 1 GPIO_ACTIVE_LOW>;
 		status = "okay";
 	};
@@ -470,6 +474,18 @@
 				MX6UL_PAD_CSI_DATA07__CSI_DATA09	0x1b008
 			>;
 		};
+
+                pinctrl_ds18b20: 18b20 {
+                        fsl,pins = <
+                                MX6UL_PAD_GPIO1_IO01__GPIO1_IO01        0x17059
+                        >;
+                };
+
+                pinctrl_dht11: dht11 {
+                        fsl,pins = <
+                                MX6UL_PAD_GPIO1_IO01__GPIO1_IO01        0x17059
+                        >;
+                };
 
 		pinctrl_enet1: enet1grp {
 			fsl,pins = <
