@@ -140,6 +140,9 @@ static int AE_Target = 52, night_mode;
 static int prev_HTS;
 static int AE_high, AE_low;
 
+static int cur_rate = ov5640_30_fps;
+static int cur_mode = ov5640_mode_VGA_640_480;
+
 static struct reg_value ov5640_global_init_setting[] = {
 	{0x3008, 0x42, 0, 0},
 	{0x3103, 0x03, 0, 0}, {0x3017, 0xff, 0, 0}, {0x3018, 0xff, 0, 0},
@@ -751,18 +754,18 @@ static struct ov5640_mode_info ov5640_mode_info_data[2][ov5640_mode_MAX + 1] = {
 		{ov5640_mode_XGA_1024_768,    1024,  768,
 		ov5640_setting_30fps_XGA_1024_768,
 		ARRAY_SIZE(ov5640_setting_30fps_XGA_1024_768)},
-                {ov5640_mode_ATK_480_272,    480,  272,
-                ov5640_setting_30fps_ATK_480_272,
-                ARRAY_SIZE(ov5640_setting_30fps_ATK_480_272)},
-                {ov5640_mode_ATK_800_480,    800,  480,
-                ov5640_setting_30fps_ATK_800_480,
-                ARRAY_SIZE(ov5640_setting_30fps_ATK_800_480)},
-                {ov5640_mode_ATK_1024_600,    1024,  600,
-                ov5640_setting_30fps_ATK_1024_600,
-                ARRAY_SIZE(ov5640_setting_30fps_ATK_1024_600)},
-                {ov5640_mode_ATK_1280_800,    1280,  800,
-                ov5640_setting_30fps_ATK_1280_800,
-                ARRAY_SIZE(ov5640_setting_30fps_ATK_1280_800)},
+		{ov5640_mode_ATK_480_272,    480,  272,
+		ov5640_setting_30fps_ATK_480_272,
+		ARRAY_SIZE(ov5640_setting_30fps_ATK_480_272)},
+		{ov5640_mode_ATK_800_480,    800,  480,
+		ov5640_setting_30fps_ATK_800_480,
+		ARRAY_SIZE(ov5640_setting_30fps_ATK_800_480)},
+		{ov5640_mode_ATK_1024_600,    1024,  600,
+		ov5640_setting_30fps_ATK_1024_600,
+		ARRAY_SIZE(ov5640_setting_30fps_ATK_1024_600)},
+		{ov5640_mode_ATK_1280_800,    1280,  800,
+		ov5640_setting_30fps_ATK_1280_800,
+		ARRAY_SIZE(ov5640_setting_30fps_ATK_1280_800)},
 	},
 };
 
@@ -807,7 +810,7 @@ static int ov5640_mod_reg(u16 reg,
     int ret;
 
     ret = ov5640_read_reg( reg, &readval);
-    if (ret)
+    if (ret < 0)
         return ret;
 
     readval &= ~mask;
@@ -956,7 +959,6 @@ static s32 ov5640_read_reg(u16 reg, u8 *val)
 	}
 
 	*val = u8RdVal;
-
 	return u8RdVal;
 }
 
@@ -1360,8 +1362,6 @@ static int ov5640_init_mode(void)
 
 	/* turn off night mode */
 	night_mode = 0;
-	ov5640_data.pix.width = 640;
-	ov5640_data.pix.height = 480;
 err:
 	return retval;
 }
@@ -1655,7 +1655,6 @@ static int ov5640_s_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *a)
 	struct ov5640 *sensor = to_ov5640(client);
 	struct v4l2_fract *timeperframe = &a->parm.capture.timeperframe;
 	u32 tgt_fps;	/* target frames per secound */
-	enum ov5640_frame_rate frame_rate;
 	int ret = 0;
 
 	switch (a->type) {
@@ -1684,22 +1683,20 @@ static int ov5640_s_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *a)
 			  timeperframe->numerator;
 
 		if (tgt_fps == 15)
-			frame_rate = ov5640_15_fps;
+			cur_rate = ov5640_15_fps;
 		else if (tgt_fps == 30)
-			frame_rate = ov5640_30_fps;
+			cur_rate = ov5640_30_fps;
 		else {
 			pr_err(" The camera frame rate is not supported!\n");
+			ret = -EINVAL;
 			goto error;
 		}
 
-		ret = ov5640_change_mode(frame_rate,
-				a->parm.capture.capturemode);
+		ret = ov5640_change_mode(cur_rate, cur_mode);
 		if (ret < 0)
 			goto error;
 
 		sensor->streamcap.timeperframe = *timeperframe;
-		sensor->streamcap.capturemode = a->parm.capture.capturemode;
-
 		break;
 
 	/* These are all the possible cases. */
@@ -1753,12 +1750,12 @@ static int ov5640_set_framefmt(struct v4l2_mbus_framefmt *mf)
     }
     /* FORMAT CONTROL00: YUV and RGB formatting */
     ret = ov5640_write_reg(0x4300, fmt);
-    if (ret)
+    if (ret < 0)
         return ret;
 
     /* FORMAT MUX CONTROL: ISP YUV or RGB */
     ret = ov5640_write_reg(0x501f, mux);
-    if (ret)
+    if (ret < 0)
         return ret;
 
     /*
@@ -1767,7 +1764,7 @@ static int ov5640_set_framefmt(struct v4l2_mbus_framefmt *mf)
      */
     ret = ov5640_mod_reg(0x3821,
                  BIT(5), is_jpeg ? BIT(5) : 0);
-    if (ret)
+    if (ret < 0)
         return ret;
 
     /*
@@ -1779,7 +1776,7 @@ static int ov5640_set_framefmt(struct v4l2_mbus_framefmt *mf)
     ret = ov5640_mod_reg(0x3002,
                  BIT(4) | BIT(3) | BIT(2),
                  is_jpeg ? 0 : (BIT(4) | BIT(3) | BIT(2)));
-    if (ret)
+    if (ret < 0)
         return ret;
 
     /*
@@ -1794,12 +1791,28 @@ static int ov5640_set_framefmt(struct v4l2_mbus_framefmt *mf)
 static int ov5640_try_fmt(struct v4l2_subdev *sd,
 			  struct v4l2_mbus_framefmt *mf)
 {
+	int mode = cur_mode;
+	int i;
+
 	const struct ov5640_datafmt *fmt = ov5640_find_datafmt(mf->code);
 	if (!fmt) {
 		mf->code	= ov5640_colour_fmts[0].code;
 		mf->colorspace	= ov5640_colour_fmts[0].colorspace;
 	}
 
+	/* 校验是否支持用户指定的视频帧大小 */
+	for (i = 0; i < ov5640_mode_MAX + 1; i++) {
+
+		if ((ov5640_mode_info_data[cur_rate][i].width == mf->width) &&
+			(ov5640_mode_info_data[cur_rate][i].height == mf->height)) {
+			mode = i;
+			break;
+		}
+	}	//如果不支持用户指定的视频帧大小、将默认等于上一次设置的大小
+
+	/* 填充 */
+	mf->width = ov5640_mode_info_data[cur_rate][mode].width;
+	mf->height = ov5640_mode_info_data[cur_rate][mode].height;
 	mf->field	= V4L2_FIELD_NONE;
 
 	return 0;
@@ -1810,17 +1823,44 @@ static int ov5640_s_fmt(struct v4l2_subdev *sd,
 {
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	struct ov5640 *sensor = to_ov5640(client);
+	const struct ov5640_datafmt *fmt = NULL;
+	int ret = 0;
+	int i;
 
-	/* MIPI CSI could have changed the format, double-check */
-	if (!ov5640_find_datafmt(mf->code))
-		return -EINVAL;
+	/* 对用户的设置进行判断、并对用户的设置进行修改 */
+	fmt = ov5640_find_datafmt(mf->code);
+	if (!fmt) {	//如果不支持、则将其设置为默认的格式RGB565
+		mf->code	= ov5640_colour_fmts[0].code;
+		mf->colorspace	= ov5640_colour_fmts[0].colorspace;
+	}
 
-	ov5640_try_fmt(sd, mf);
+	mf->field	= V4L2_FIELD_NONE;
 
-	ov5640_set_framefmt(mf);
+	/* 配置寄存器设置像素格式 */
+	ret = ov5640_set_framefmt(mf);
+	if (ret < 0)
+		return ret;
 
-	sensor->fmt = ov5640_find_datafmt(mf->code);
+	/* 校验是否支持用户指定的视频帧大小 */
+	for (i = 0; i < ov5640_mode_MAX + 1; i++) {
 
+		if ((ov5640_mode_info_data[cur_rate][i].width == mf->width) &&
+			(ov5640_mode_info_data[cur_rate][i].height == mf->height)) {
+			cur_mode = i;
+			break;
+		}
+	}	//如果不支持用户指定的视频帧大小、将默认等于上一次设置的大小
+
+	ret = ov5640_change_mode(cur_rate, cur_mode);
+	if (ret < 0)
+		return ret;
+
+	mf->width = ov5640_mode_info_data[cur_rate][cur_mode].width;
+	mf->height = ov5640_mode_info_data[cur_rate][cur_mode].height;
+
+	/* 更新本地保存的格式 */
+	sensor->fmt = fmt;
+	sensor->pix.colorspace= mf->colorspace;
 	return 0;
 }
 
@@ -1829,12 +1869,13 @@ static int ov5640_g_fmt(struct v4l2_subdev *sd,
 {
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	struct ov5640 *sensor = to_ov5640(client);
-
 	const struct ov5640_datafmt *fmt = sensor->fmt;
 
 	mf->code	= fmt->code;
 	mf->colorspace	= fmt->colorspace;
 	mf->field	= V4L2_FIELD_NONE;
+	mf->width	= sensor->pix.width;
+	mf->height	= sensor->pix.height;
 
 	return 0;
 }
@@ -1944,30 +1985,8 @@ static int ov5640_set_clk_rate(void)
  */
 static int init_device(void)
 {
-	u32 tgt_xclk;	/* target xclk */
-	u32 tgt_fps;	/* target frames per secound */
-	enum ov5640_frame_rate frame_rate;
-	int ret;
-
 	ov5640_data.on = true;
-
-	/* mclk */
-	tgt_xclk = ov5640_data.mclk;
-
-	/* Default camera frame rate is set in probe */
-	tgt_fps = ov5640_data.streamcap.timeperframe.denominator /
-		  ov5640_data.streamcap.timeperframe.numerator;
-
-	if (tgt_fps == 15)
-		frame_rate = ov5640_15_fps;
-	else if (tgt_fps == 30)
-		frame_rate = ov5640_30_fps;
-	else
-		return -EINVAL; /* Only support 15fps or 30fps now. */
-
-	ret = ov5640_init_mode();
-
-	return ret;
+	return ov5640_init_mode();
 }
 
 static struct v4l2_subdev_video_ops ov5640_subdev_video_ops = {
@@ -2081,9 +2100,11 @@ static int ov5640_probe(struct i2c_client *client,
 	ov5640_data.pix.pixelformat = V4L2_PIX_FMT_RGB565;
 	ov5640_data.pix.width = 640;
 	ov5640_data.pix.height = 480;
+	ov5640_data.pix.field = V4L2_FIELD_NONE;
+	ov5640_data.pix.colorspace = V4L2_COLORSPACE_SRGB;
 	ov5640_data.streamcap.capability = V4L2_MODE_HIGHQUALITY |
 					   V4L2_CAP_TIMEPERFRAME;
-	ov5640_data.streamcap.capturemode = 0;
+	ov5640_data.streamcap.capturemode = V4L2_CAP_TIMEPERFRAME;
 	ov5640_data.streamcap.timeperframe.denominator = DEFAULT_FPS;
 	ov5640_data.streamcap.timeperframe.numerator = 1;
 
