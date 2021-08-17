@@ -213,6 +213,12 @@ static int goodix_read_cfg(struct goodix_ts_dev *ts)
 	ts->irq_flag = goodix_irq_flags[buf[6] & 0x03];
 	ts->abs_x_max = buf[1] | (buf[2] << 8);
 	ts->abs_y_max = buf[3] | (buf[4] << 8);
+	if (1158 == ts->id) {
+		ts->max_support_points = 5;
+		ts->irq_flag = goodix_irq_flags[1];
+		ts->abs_x_max = 800;
+		ts->abs_y_max = 480;
+	}
 
 	dev_info(&ts->client->dev, "touch number: %d\n", ts->max_support_points);
 	dev_info(&ts->client->dev, "irq trigger: %d\n", ts->irq_flag);
