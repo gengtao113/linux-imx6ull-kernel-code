@@ -305,8 +305,8 @@ static const struct regval_list ov2640_init_regs[] = {
 	{ BANK_SEL, BANK_SEL_SENS },
 	{ 0x3c,   0x32 },
 	{ CLKRC, CLKRC_DIV_SET(1) },
-	{ COM2, COM2_OCAP_Nx_SET(1) },
-	{ REG04, 0xff },
+	{ COM2, COM2_OCAP_Nx_SET(3) },
+	{ REG04, REG04_DEF | REG04_HREF_EN | REG04_VFLIP_IMG },
 	{ COM8,  COM8_DEF | COM8_BNDF_EN | COM8_AGC_EN | COM8_AEC_EN },
 	{ COM9, COM9_AGC_GAIN_8x | 0x08},
 	{ 0x2c,   0x0c },
@@ -1136,11 +1136,11 @@ static int ov2640_probe(struct i2c_client *client,
 		goto err_clk;
 	}
 
-	if (!ssdd) {
+	//if (!ssdd) {
 		ret = ov2640_probe_dt(client, priv);
 		if (ret)
 			goto err_clk;
-	}
+	//}
 
 	v4l2_i2c_subdev_init(&priv->subdev, client, &ov2640_subdev_ops);
 	v4l2_ctrl_handler_init(&priv->hdl, 2);
