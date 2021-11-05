@@ -352,9 +352,10 @@ struct mx6s_csi_dev {
 	size_t						discard_size;
 	struct mx6s_buf_internal	buf_discard[2];
 
-	struct v4l2_async_subdev	asd;
+#define V4L2_SUBDEV_NUM		3
+	struct v4l2_async_subdev	asd[V4L2_SUBDEV_NUM];
 	struct v4l2_async_notifier	subdev_notifier;
-	struct v4l2_async_subdev	*async_subdevs[2];
+	struct v4l2_async_subdev	*async_subdevs[V4L2_SUBDEV_NUM + 1];
 
 	bool csi_mux_mipi;
 	struct mx6s_csi_mux csi_mux;
@@ -1696,10 +1697,13 @@ static int subdev_notifier_bound(struct v4l2_async_notifier *notifier,
 			    struct v4l2_async_subdev *asd)
 {
 	struct mx6s_csi_dev *csi_dev = notifier_to_mx6s_dev(notifier);
+	int i;
 
 	/* Find platform data for this sensor subdev */
-	if (csi_dev->asd.match.of.node == subdev->dev->of_node)
-		csi_dev->sd = subdev;
+	for (i = 0; i < V4L2_SUBDEV_NUM; i++) {
+		if (csi_dev->asd[i].match.of.node == subdev->dev->of_node)
+			csi_dev->sd = subdev;
+	}
 
 	if (subdev == NULL)
 		return -EINVAL;
@@ -1755,6 +1759,7 @@ static int mx6sx_register_subdevs(struct mx6s_csi_dev *csi_dev)
 	struct device_node *parent = csi_dev->dev->of_node;
 	struct device_node *node, *port, *rem;
 	int ret;
+	int i = 0;
 
 	/* Attach sensors linked to csi receivers */
 	for_each_available_child_of_node(parent, node) {
@@ -1774,16 +1779,17 @@ static int mx6sx_register_subdevs(struct mx6s_csi_dev *csi_dev)
 			return -1;
 		}
 
-		csi_dev->asd.match_type = V4L2_ASYNC_MATCH_OF;
-		csi_dev->asd.match.of.node = rem;
-		csi_dev->async_subdevs[0] = &csi_dev->asd;
+		csi_dev->asd[i].match_type = V4L2_ASYNC_MATCH_OF;
+		csi_dev->asd[i].match.of.node = rem;
+		csi_dev->async_subdevs[i] = &csi_dev->asd[i];
 
 		of_node_put(rem);
-		break;
+		i++;
+		//break;
 	}
 
 	csi_dev->subdev_notifier.subdevs = csi_dev->async_subdevs;
-	csi_dev->subdev_notifier.num_subdevs = 1;
+	csi_dev->subdev_notifier.num_subdevs = i;
 	csi_dev->subdev_notifier.bound = subdev_notifier_bound;
 
 	ret = v4l2_async_notifier_register(&csi_dev->v4l2_dev,
