@@ -10,6 +10,14 @@
 	sii902x: sii902x@39{
 		status = "okay";
 	};
+
+        edt-ft5x06@38 {
+                status = "disabled";
+        };
+
+        goodix_ts@5d {
+                status = "disabled";
+        };
 };
 
 &lcdif {

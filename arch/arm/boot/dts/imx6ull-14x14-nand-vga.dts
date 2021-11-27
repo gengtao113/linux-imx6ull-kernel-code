@@ -1,5 +1,15 @@
 #include "imx6ull-14x14-evk-gpmi-weim.dts"
 
+&i2c2 {
+        edt-ft5x06@38 {
+                status = "disabled";
+        };
+
+        goodix_ts@5d {
+                status = "disabled";
+        };
+};
+
 &lcdif {
         pinctrl-0 = <&pinctrl_vga_dat
                     &pinctrl_vga_ctrl>;

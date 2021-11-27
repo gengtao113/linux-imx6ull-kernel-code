@@ -1,16 +1,6 @@
 
 #include "imx6ull-14x14-evk-gpmi-weim.dts"
 
-&i2c2 {
-	edt-ft5x06@38 {
-		status = "disabled";
-	};
-
-	goodix_ts@5d {
-		status = "okay";
-	};
-};
-
 &lcdif {
 	display0: display {
 		bits-per-pixel = <16>;
