@@ -1,6 +1,12 @@
 
 #include "imx6ull-14x14-evk-emmc.dts"
 
+&i2c2 {
+        goodix_ts@5d {
+                reg = <0x5d>;
+        };
+};
+
 &lcdif {
 	display0: display {
 		bits-per-pixel = <16>;
