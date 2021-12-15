@@ -419,6 +419,7 @@ static const struct ov772x_color_format ov772x_cfmts[] = {
 		.com3		= SWAP_YUV,
 		.com7		= OFMT_YUV,
 	},
+#if 0
 	{
 		.code		= MEDIA_BUS_FMT_YVYU8_2X8,
 		.colorspace	= V4L2_COLORSPACE_JPEG,
@@ -427,6 +428,7 @@ static const struct ov772x_color_format ov772x_cfmts[] = {
 		.com3		= SWAP_YUV,
 		.com7		= OFMT_YUV,
 	},
+#endif
 	{
 		.code		= MEDIA_BUS_FMT_UYVY8_2X8,
 		.colorspace	= V4L2_COLORSPACE_JPEG,
@@ -435,6 +437,7 @@ static const struct ov772x_color_format ov772x_cfmts[] = {
 		.com3		= 0x0,
 		.com7		= OFMT_YUV,
 	},
+#if 0
 	{
 		.code		= MEDIA_BUS_FMT_RGB555_2X8_PADHI_LE,
 		.colorspace	= V4L2_COLORSPACE_SRGB,
@@ -451,6 +454,7 @@ static const struct ov772x_color_format ov772x_cfmts[] = {
 		.com3		= 0x0,
 		.com7		= FMT_RGB555 | OFMT_RGB,
 	},
+#endif
 	{
 		.code		= MEDIA_BUS_FMT_RGB565_2X8_LE,
 		.colorspace	= V4L2_COLORSPACE_SRGB,
@@ -467,6 +471,7 @@ static const struct ov772x_color_format ov772x_cfmts[] = {
 		.com3		= 0x0,
 		.com7		= FMT_RGB565 | OFMT_RGB,
 	},
+#if 0
 	{
 		/* Setting DSP4 to DSP_OFMT_RAW8 still gives 10-bit output,
 		 * regardless of the COM7 value. We can thus only support 10-bit
@@ -479,6 +484,7 @@ static const struct ov772x_color_format ov772x_cfmts[] = {
 		.com3		= 0x0,
 		.com7		= SENSOR_RAW | OFMT_BRAW,
 	},
+#endif
 };
 
 
