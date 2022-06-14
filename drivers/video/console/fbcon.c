@@ -586,7 +586,9 @@ static void fbcon_prepare_logo(struct vc_data *vc, struct fb_info *info,
 		erase &= ~0x400;
 	logo_height = fb_prepare_logo(info, ops->rotate);
 	logo_height += (info->var.yres/2) - (214/2);
-	logo_lines = DIV_ROUND_UP(logo_height, vc->vc_font.height);
+	/* There is a bug with this method */
+	//logo_lines = DIV_ROUND_UP(logo_height, vc->vc_font.height);
+	logo_lines = logo_height / vc->vc_font.height;
 	q = (unsigned short *) (vc->vc_origin +
 				vc->vc_size_row * rows);
 	step = logo_lines * cols;
