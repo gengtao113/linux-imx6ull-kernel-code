@@ -62,6 +62,7 @@
 #define IMX2_WDT_WMCR		0x08		/* Misc Register */
 
 #define IMX2_WDT_MAX_TIME	128
+#define IMX2_WDT_MINI_TIME	1
 #define IMX2_WDT_DEFAULT_TIME	60		/* in seconds */
 
 #define WDOG_SEC_TO_COUNT(s)	((s * 2 - 1) << 8)
@@ -406,7 +407,9 @@ static void imx2_wdt_shutdown(struct platform_device *pdev)
 		 * give max timeout before reboot will take place
 		 */
 		del_timer_sync(&wdev->timer);
-		imx2_wdt_set_timeout(wdog, IMX2_WDT_MAX_TIME);
+		//imx2_wdt_set_timeout(wdog, IMX2_WDT_MAX_TIME);
+		/* restart now! */
+		imx2_wdt_set_timeout(wdog, IMX2_WDT_MINI_TIME);
 		imx2_wdt_ping(wdog);
 		dev_crit(&pdev->dev, "Device shutdown: Expect reboot!\n");
 	}
