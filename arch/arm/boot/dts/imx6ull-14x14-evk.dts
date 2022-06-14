@@ -437,7 +437,6 @@
                 pinctrl-0 = <&pinctrl_sii902x>;
                 interrupt-parent = <&gpio1>;
                 interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
-		irq-gpios = <&gpio1 9 GPIO_ACTIVE_LOW>;
                 mode_str = "1280x720M@60";
                 bits-per-pixel = <16>;
                 resets = <&sii902x_reset>;
