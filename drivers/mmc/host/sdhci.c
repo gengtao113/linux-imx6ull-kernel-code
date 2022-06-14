@@ -2044,7 +2044,8 @@ static int sdhci_execute_tuning(struct mmc_host *mmc, u32 opcode)
 		pr_info(DRIVER_NAME ": Tuning procedure"
 			" failed, falling back to fixed sampling"
 			" clock\n");
-		err = -EIO;
+		/* should not return -EIO */
+		//err = -EIO;
 	}
 
 out:
