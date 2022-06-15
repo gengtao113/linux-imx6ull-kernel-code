@@ -32,6 +32,8 @@
 #include <media/v4l2-device.h>
 #include <media/v4l2-ctrls.h>
 
+#include "ov5640af.h"
+
 #define OV5640_VOLTAGE_ANALOG               2800000
 #define OV5640_VOLTAGE_DIGITAL_CORE         1500000
 #define OV5640_VOLTAGE_DIGITAL_IO           1800000
@@ -1330,6 +1332,65 @@ err:
 	return retval;
 }
 
+static int ov5640_auto_focus(void)
+{
+        u16 addr = 0x8000;
+        u16 i;
+        u8 state = 0x8F;
+        u8 temp = 0;
+        u16 retry = 0;
+
+        ov5640_write_reg(0x3000, 0x20);
+
+        for (i = 0; i < sizeof(OV5640_AF_Config); i++) {
+            ov5640_write_reg(addr, OV5640_AF_Config[i]);
+            addr++;
+        }
+
+        ov5640_write_reg(0x3022, 0x00);
+        ov5640_write_reg(0x3023, 0x00);
+        ov5640_write_reg(0x3024, 0x00);
+        ov5640_write_reg(0x3025, 0x00);
+        ov5640_write_reg(0x3026, 0x00);
+        ov5640_write_reg(0x3027, 0x00);
+        ov5640_write_reg(0x3028, 0x00);
+        ov5640_write_reg(0x3029, 0x7f);
+        ov5640_write_reg(0x3000, 0x00);
+
+        i = 0;
+
+        do {
+            ov5640_read_reg(0x3029, &state);
+            msleep(5);
+            i++;
+            if (i > 1000) return 1;
+        } while(state != 0x70);
+
+        ov5640_write_reg(0x3023, 0x01);
+        ov5640_write_reg(0x3022, 0x08);
+
+        do {
+            ov5640_read_reg(0x3023, &temp);
+            retry++;
+            if (retry > 1000) return 2;
+            msleep(5);
+        } while (temp != 0x00);
+
+        ov5640_write_reg(0x3023, 0x01);
+        ov5640_write_reg(0x3022, 0x04);
+
+        retry = 0;
+
+        do {
+            ov5640_read_reg(0x3023, &temp);
+            retry++;
+            if (retry > 1000) return 2;
+            msleep(5);
+        } while (temp != 0x00);
+
+        return 0;
+}
+
 static int ov5640_init_mode(void)
 {
 	struct reg_value *pModeSetting = NULL;
@@ -1362,6 +1423,9 @@ static int ov5640_init_mode(void)
 
 	/* turn off night mode */
 	night_mode = 0;
+
+	/* auto focus */
+	ov5640_auto_focus();
 err:
 	return retval;
 }
@@ -1800,7 +1864,7 @@ static int ov5640_try_fmt(struct v4l2_subdev *sd,
 		mf->colorspace	= ov5640_colour_fmts[0].colorspace;
 	}
 
-	/* 校验是否支持用户指定的视频帧大小 */
+	/* Verifies whether the user - specified video frame size is supported */
 	for (i = 0; i < ov5640_mode_MAX + 1; i++) {
 
 		if ((ov5640_mode_info_data[cur_rate][i].width == mf->width) &&
@@ -1808,9 +1872,8 @@ static int ov5640_try_fmt(struct v4l2_subdev *sd,
 			mode = i;
 			break;
 		}
-	}	//如果不支持用户指定的视频帧大小、将默认等于上一次设置的大小
+	}	/* If the video frame size specified by the user is not supported, it defaults to the size set last time  */
 
-	/* 填充 */
 	mf->width = ov5640_mode_info_data[cur_rate][mode].width;
 	mf->height = ov5640_mode_info_data[cur_rate][mode].height;
 	mf->field	= V4L2_FIELD_NONE;
@@ -1827,21 +1890,21 @@ static int ov5640_s_fmt(struct v4l2_subdev *sd,
 	int ret = 0;
 	int i;
 
-	/* 对用户的设置进行判断、并对用户的设置进行修改 */
+	/* Determine and modify user Settings */
 	fmt = ov5640_find_datafmt(mf->code);
-	if (!fmt) {	//如果不支持、则将其设置为默认的格式RGB565
+	if (!fmt) {	/* If not, set it to the default format RGB565 */
 		mf->code	= ov5640_colour_fmts[0].code;
 		mf->colorspace	= ov5640_colour_fmts[0].colorspace;
 	}
 
 	mf->field	= V4L2_FIELD_NONE;
 
-	/* 配置寄存器设置像素格式 */
+	/* The configuration register sets the pixel format */
 	ret = ov5640_set_framefmt(mf);
 	if (ret < 0)
 		return ret;
 
-	/* 校验是否支持用户指定的视频帧大小 */
+	/* Verifies whether the user - specified video frame size is supported */
 	for (i = 0; i < ov5640_mode_MAX + 1; i++) {
 
 		if ((ov5640_mode_info_data[cur_rate][i].width == mf->width) &&
@@ -1849,7 +1912,7 @@ static int ov5640_s_fmt(struct v4l2_subdev *sd,
 			cur_mode = i;
 			break;
 		}
-	}	//如果不支持用户指定的视频帧大小、将默认等于上一次设置的大小
+	}	/* If the video frame size specified by the user is not supported, it defaults to the size set last time */
 
 	ret = ov5640_change_mode(cur_rate, cur_mode);
 	if (ret < 0)
@@ -1858,7 +1921,7 @@ static int ov5640_s_fmt(struct v4l2_subdev *sd,
 	mf->width = ov5640_mode_info_data[cur_rate][cur_mode].width;
 	mf->height = ov5640_mode_info_data[cur_rate][cur_mode].height;
 
-	/* 更新本地保存的格式 */
+	/* Update the local save format */
 	sensor->fmt = fmt;
 	sensor->pix.colorspace= mf->colorspace;
 	return 0;
