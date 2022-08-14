@@ -3353,6 +3353,8 @@ static void fec_reset_phy(struct platform_device *pdev)
 	}
 	msleep(msec);
 	gpio_set_value(phy_reset, 1);
+	/* sr8021f takes 150ms to operate */
+	msleep(150);
 }
 #else /* CONFIG_OF */
 static void fec_reset_phy(struct platform_device *pdev)
