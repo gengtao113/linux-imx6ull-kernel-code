@@ -145,7 +145,7 @@
 			   "fsl,imx-audio-wm8960";
 		model = "wm8960-audio";
 		cpu-dai = <&sai2>;
-		audio-codec = <&codec>;
+		audio-codec = <&codec &codec1>;
 		asrc-controller = <&asrc>;
 		codec-master;
 		gpr = <&gpr 4 0x100000 0x100000>;
@@ -272,7 +272,7 @@
 
 		ethphy0: ethernet-phy@2 {
 			compatible = "ethernet-phy-ieee802.3-c22";
-			reg = <0>;
+			reg = <2>;
 		};
 
 		ethphy1: ethernet-phy@1 {
@@ -310,6 +310,15 @@
 	pinctrl-0 = <&pinctrl_i2c1>;
 	status = "okay";
 
+        codec: wm8960@1a {
+                compatible = "wlf,wm8960";
+                reg = <0x1a>;
+                clocks = <&clks IMX6UL_CLK_SAI2>;
+                clock-names = "mclk";
+                wlf,shared-lrclk;
+        };
+
+
 	mag3110@0e {
 		compatible = "fsl,mag3110";
 		reg = <0x0e>;
@@ -329,7 +338,7 @@
 	pinctrl-0 = <&pinctrl_i2c2>;
 	status = "okay";
 
-	codec: wm8960@1a {
+	codec1: wm8960@1a {
 		compatible = "wlf,wm8960";
 		reg = <0x1a>;
 		clocks = <&clks IMX6UL_CLK_SAI2>;
