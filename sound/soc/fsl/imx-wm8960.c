@@ -455,10 +455,15 @@ static int imx_wm8960_probe(struct platform_device *pdev)
 
 	codec_dev = of_find_i2c_device_by_node(codec_np);
 	if (!codec_dev || !codec_dev->dev.driver) {
-		dev_err(&pdev->dev, "failed to find codec platform device\n");
-		ret = -EINVAL;
-		goto fail;
+		codec_np = of_parse_phandle(pdev->dev.of_node, "audio-codec", 1);
+		codec_dev = of_find_i2c_device_by_node(codec_np);
 	}
+
+        if (!codec_dev || !codec_dev->dev.driver) {
+                dev_err(&pdev->dev, "failed to find codec platform device\n");
+                ret = -EINVAL;
+                goto fail;
+        }
 
 	data = devm_kzalloc(&pdev->dev, sizeof(*data), GFP_KERNEL);
 	if (!data) {
