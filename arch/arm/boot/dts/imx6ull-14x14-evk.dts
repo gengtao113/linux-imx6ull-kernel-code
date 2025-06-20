@@ -102,6 +102,14 @@
 			gpios = <&gpio5 3 GPIO_ACTIVE_HIGH>;
 			states = <1300000 0x1 1400000 0x0>;
 		};
+
+		reg_audio_pwr: regulator-audio-pwr {
+			compatible = "regulator-fixed";
+			regulator-name = "audio-pwr";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			enable-active-high;
+		};
 	};
 
 	leds {
@@ -140,12 +148,35 @@
 		};
 	};
 
+    sound-es8388 {
+        compatible = "fsl,imx-audio-es8388";
+        model = "es8388-audio";
+        audio-cpu = <&sai2>;
+        audio-codec = <&codec>;
+		audio-asrc = <&asrc>;
+		gpr = <&gpr 4 0x100000 0x100000>;
+        audio-routing =
+            "Headphone Jack", "LOUT1",
+            "Headphone Jack", "ROUT1",
+            "Ext Spk", "LOUT2",
+            "Ext Spk", "ROUT2",
+            "LINPUT1", "Line In Jack",
+			"RINPUT1", "Line In Jack",
+            "LINPUT2", "Mic Jack",
+            "RINPUT2", "Mic Jack",
+            "Mic Jack", "Mic Bias",
+			"CPU-Playback", "ASRC-Playback",
+			"Playback", "CPU-Playback",
+			"ASRC-Capture", "CPU-Capture",
+			"CPU-Capture", "Capture";
+    };
+
 	sound {
 		compatible = "fsl,imx6ul-evk-wm8960",
 			   "fsl,imx-audio-wm8960";
 		model = "wm8960-audio";
 		cpu-dai = <&sai2>;
-		audio-codec = <&codec &codec1>;
+		audio-codec = <&codec1 &codec2>;
 		asrc-controller = <&asrc>;
 		codec-master;
 		gpr = <&gpr 4 0x100000 0x100000>;
@@ -310,14 +341,27 @@
 	pinctrl-0 = <&pinctrl_i2c1>;
 	status = "okay";
 
-        codec: wm8960@1a {
-                compatible = "wlf,wm8960";
-                reg = <0x1a>;
-                clocks = <&clks IMX6UL_CLK_SAI2>;
-                clock-names = "mclk";
-                wlf,shared-lrclk;
-        };
+   codec: es8388@11 {
+        compatible = "alientek,es8388";
+        reg = <0x11>;
+		clock-names = "mclk";
+        clocks = <&clks IMX6UL_CLK_SAI2>;
+		hp-det-gpio = <&gpio5 4 GPIO_ACTIVE_HIGH>;
+		AVDD-supply = <&reg_audio_pwr>;
+        DVDD-supply = <&reg_audio_pwr>;
+        HPVDD-supply = <&reg_audio_pwr>;
+        PVDD-supply = <&reg_audio_pwr>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_es8388_hp_det_b>;
+    };
 
+    codec1: wm8960@1a {
+		compatible = "wlf,wm8960";
+		reg = <0x1a>;
+		clocks = <&clks IMX6UL_CLK_SAI2>;
+		clock-names = "mclk";
+		wlf,shared-lrclk;
+	};
 
 	mag3110@0e {
 		compatible = "fsl,mag3110";
@@ -338,7 +382,7 @@
 	pinctrl-0 = <&pinctrl_i2c2>;
 	status = "okay";
 
-	codec1: wm8960@1a {
+	codec2: wm8960@1a {
 		compatible = "wlf,wm8960";
 		reg = <0x1a>;
 		clocks = <&clks IMX6UL_CLK_SAI2>;
@@ -838,11 +882,11 @@
 			>;
 		};
 
-                pinctrl_sai2_hp_det_b: sai2_hp_det_grp {
-                        fsl,pins = <
-                                MX6ULL_PAD_SNVS_TAMPER4__GPIO5_IO04   0x17059
-                        >;
-                };
+		pinctrl_es8388_hp_det_b: es8388_hp_det_grp {
+			fsl,pins = <
+				MX6ULL_PAD_SNVS_TAMPER4__GPIO5_IO04   0x17059
+			>;
+		};
 
 		ts_reset_pin: ts_reset_pin_mux {
 			fsl,pins = <
@@ -920,8 +964,7 @@
 
 &sai2 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_sai2
-		     &pinctrl_sai2_hp_det_b>;
+	pinctrl-0 = <&pinctrl_sai2>;
 
 	assigned-clocks = <&clks IMX6UL_CLK_SAI2_SEL>,
 			  <&clks IMX6UL_CLK_SAI2>;

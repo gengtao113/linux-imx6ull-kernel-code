@@ -433,6 +433,9 @@ config SND_SOC_DMIC
 config SND_SOC_HDMI_CODEC
        tristate "HDMI stub CODEC"
 
+config SND_SOC_ES8388
+	tristate "Everest Semi ES8388 CODEC"
+
 config SND_SOC_ES8328
 	tristate "Everest Semi ES8328 CODEC"
 

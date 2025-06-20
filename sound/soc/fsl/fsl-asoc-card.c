@@ -23,12 +23,19 @@
 
 #include "../codecs/sgtl5000.h"
 #include "../codecs/wm8962.h"
+#include "../codecs/es8388.h"
+
+#include <linux/mfd/syscon.h>
 
 #define RX 0
 #define TX 1
 
 /* Default DAI format without Master and Slave flag */
 #define DAI_FMT_BASE (SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF)
+
+enum fsl_asoc_card_type {
+	CARD_ES8388,
+};
 
 /**
  * CODEC private data
@@ -89,6 +96,8 @@ struct fsl_asoc_card_priv {
 	u32 asrc_rate;
 	u32 asrc_format;
 	u32 dai_fmt;
+	u32 card_type;	/* alienetek */
+	struct regmap *gpr;	/* alienetek */
 	char name[32];
 };
 
@@ -113,6 +122,77 @@ static const struct snd_soc_dapm_widget fsl_asoc_card_dapm_widgets[] = {
 	SND_SOC_DAPM_MIC("AMIC", NULL),
 	SND_SOC_DAPM_MIC("DMIC", NULL),
 };
+
+static int fsl_asoc_card_startup(struct snd_pcm_substream *substream)
+{
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct fsl_asoc_card_priv *priv = snd_soc_card_get_drvdata(rtd->card);
+	static struct snd_pcm_hw_constraint_list constraint_rates;
+	struct snd_pcm_runtime *runtime = substream->runtime;
+	// struct device *dev = rtd->card->dev;
+	static u32 support_rates[6];
+	int ret;
+
+	/*
+	 * Remove S20_3LE for master and slave mode for the clock can't
+	 * be aligned for cpu dai and codec dai
+	 */
+	ret = snd_pcm_hw_constraint_mask64(runtime,
+					   SNDRV_PCM_HW_PARAM_FORMAT,
+					   ~SNDRV_PCM_FMTBIT_S20_3LE);
+	if (ret)
+		return ret;
+
+	if (priv->card_type == CARD_ES8388) 
+	{
+		// support_rates[0] = 8000;
+		// support_rates[1] = 16000;
+		// support_rates[2] = 32000;
+		// support_rates[3] = 48000;
+		// support_rates[4] = 64000;
+		// support_rates[5] = 96000;
+
+		support_rates[0] = 8000;
+		support_rates[1] = 11025;
+		support_rates[2] = 22050;
+		support_rates[3] = 44100;
+		support_rates[4] = 88200;
+
+		constraint_rates.list = support_rates;
+		
+		// constraint_rates.count = 6;
+
+		constraint_rates.count = 5;
+
+		ret = snd_pcm_hw_constraint_list(runtime, 0,
+						 SNDRV_PCM_HW_PARAM_RATE,
+						 &constraint_rates);
+		if (ret)
+			return ret;
+
+		ret = snd_pcm_hw_constraint_mask64(runtime,
+						 SNDRV_PCM_HW_PARAM_FORMAT,
+						 SNDRV_PCM_FMTBIT_S16_LE);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
+
+static int fsl_asoc_card_hw_free(struct snd_pcm_substream *substream)
+{
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
+	struct device *dev = rtd->card->dev;
+	int ret;
+
+	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_CBS_CFS | SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF);
+	if (ret)
+		dev_warn(dev, "failed to set codec dai fmt: %d\n", ret);
+
+	return 0;
+}
 
 static int fsl_asoc_card_hw_params(struct snd_pcm_substream *substream,
 				   struct snd_pcm_hw_params *params)
@@ -139,6 +219,7 @@ static int fsl_asoc_card_hw_params(struct snd_pcm_substream *substream,
 	ret = snd_soc_dai_set_sysclk(rtd->cpu_dai, cpu_priv->sysclk_id[tx],
 				     cpu_priv->sysclk_freq[tx],
 				     cpu_priv->sysclk_dir[tx]);
+
 	if (ret) {
 		dev_err(dev, "failed to set sysclk for cpu dai\n");
 		return ret;
@@ -157,7 +238,9 @@ static int fsl_asoc_card_hw_params(struct snd_pcm_substream *substream,
 }
 
 static struct snd_soc_ops fsl_asoc_card_ops = {
+	.startup = fsl_asoc_card_startup,
 	.hw_params = fsl_asoc_card_hw_params,
+	.hw_free = fsl_asoc_card_hw_free,
 };
 
 static int be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
@@ -183,6 +266,7 @@ static struct snd_soc_dai_link fsl_asoc_card_dai[] = {
 		.name = "HiFi",
 		.stream_name = "HiFi",
 		.ops = &fsl_asoc_card_ops,
+		.ignore_pmdown_time = 1,
 	},
 	/* DPCM Link between Front-End and Back-End (Optional) */
 	{
@@ -193,6 +277,7 @@ static struct snd_soc_dai_link fsl_asoc_card_dai[] = {
 		.dpcm_playback = 1,
 		.dpcm_capture = 1,
 		.dynamic = 1,
+		.ignore_pmdown_time = 1,
 	},
 	{
 		.name = "HiFi-ASRC-BE",
@@ -407,12 +492,30 @@ static int fsl_asoc_card_probe(struct platform_device *pdev)
 	struct fsl_asoc_card_priv *priv;
 	struct i2c_client *codec_dev;
 	struct clk *codec_clk;
+	const char *codec_dai_name;	/* alientek */
+	struct of_phandle_args args;	/* alientek */
 	u32 width;
+	// u32 val;
 	int ret;
 
 	priv = devm_kzalloc(&pdev->dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
 		return -ENOMEM;
+
+	ret = of_parse_phandle_with_fixed_args(pdev->dev.of_node, "gpr", 3,
+				0, &args);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to get gpr property\n");
+		goto fail;
+	} else {
+		priv->gpr = syscon_node_to_regmap(args.np);
+		if (IS_ERR(priv->gpr)) {
+			ret = PTR_ERR(priv->gpr);
+			dev_err(&pdev->dev, "failed to get gpr regmap\n");
+			goto fail;
+		}
+		regmap_update_bits(priv->gpr, args.args[0], args.args[1], args.args[2]);
+	}
 
 	cpu_np = of_parse_phandle(np, "audio-cpu", 0);
 	/* Give a chance to old DT binding */
@@ -447,15 +550,19 @@ static int fsl_asoc_card_probe(struct platform_device *pdev)
 	codec_clk = clk_get(&codec_dev->dev, NULL);
 	if (!IS_ERR(codec_clk)) {
 		priv->codec_priv.mclk_freq = clk_get_rate(codec_clk);
+		dev_err(&pdev->dev, "priv->codec_priv.mclk_freq = %ld\n", priv->codec_priv.mclk_freq);
 		clk_put(codec_clk);
 	}
 
 	/* Default sample rate and format, will be updated in hw_params() */
-	priv->sample_rate = 44100;
+	priv->sample_rate = 48000;
 	priv->sample_format = SNDRV_PCM_FORMAT_S16_LE;
 
 	/* Assign a default DAI format, and allow each card to overwrite it */
 	priv->dai_fmt = DAI_FMT_BASE;
+
+	memcpy(priv->dai_link, fsl_asoc_card_dai,
+	       sizeof(struct snd_soc_dai_link) * ARRAY_SIZE(priv->dai_link));
 
 	/* Diversify the card configurations */
 	if (of_device_is_compatible(np, "fsl,imx-audio-cs42888")) {
@@ -475,14 +582,29 @@ static int fsl_asoc_card_probe(struct platform_device *pdev)
 		priv->codec_priv.fll_id = WM8962_SYSCLK_FLL;
 		priv->codec_priv.pll_id = WM8962_FLL;
 		priv->dai_fmt |= SND_SOC_DAIFMT_CBM_CFM;
+	} else if (of_device_is_compatible(np, "fsl,imx-audio-es8388")) {
+		codec_dai_name = "ES8388 HiFi";	/* alientek */
+		priv->card.set_bias_level = fsl_asoc_card_set_bias_level;
+		priv->cpu_priv.sysclk_freq[TX] = priv->codec_priv.mclk_freq;
+		priv->cpu_priv.sysclk_freq[RX] = priv->codec_priv.mclk_freq;
+		priv->cpu_priv.sysclk_dir[TX] = SND_SOC_CLOCK_OUT;
+		priv->cpu_priv.sysclk_dir[RX] = SND_SOC_CLOCK_OUT;
+		priv->dai_fmt |= SND_SOC_DAIFMT_CBS_CFS;
+		priv->codec_priv.mclk_id = ES8388_MCLK;
+		priv->cpu_priv.slot_width = 16;
+		priv->card_type = CARD_ES8388;
 	} else {
 		dev_err(&pdev->dev, "unknown Device Tree compatible\n");
 		return -EINVAL;
 	}
 
+	of_property_read_u32(np, "mclk-id", &priv->codec_priv.mclk_id);
+
 	/* Common settings for corresponding Freescale CPU DAI driver */
 	if (strstr(cpu_np->name, "ssi")) {
-		/* Only SSI needs to configure AUDMUX */
+		/* Only SSI needs to configure 
+		
+		 */
 		ret = fsl_asoc_card_audmux_init(np, priv);
 		if (ret) {
 			dev_err(&pdev->dev, "failed to init audmux\n");
@@ -521,16 +643,19 @@ static int fsl_asoc_card_probe(struct platform_device *pdev)
 	/* Normal DAI Link */
 	priv->dai_link[0].cpu_of_node = cpu_np;
 	priv->dai_link[0].codec_of_node = codec_np;
-	priv->dai_link[0].codec_dai_name = codec_dev->name;
+	// priv->dai_link[0].codec_dai_name = codec_dev->name;
+	priv->dai_link[0].codec_dai_name = codec_dai_name;	/* alientek */
 	priv->dai_link[0].platform_of_node = cpu_np;
 	priv->dai_link[0].dai_fmt = priv->dai_fmt;
 	priv->card.num_links = 1;
 
 	if (asrc_pdev) {
+		dev_err(&pdev->dev, "DPCM DAI Links only if ASRC exsits\n");
 		/* DPCM DAI Links only if ASRC exsits */
 		priv->dai_link[1].cpu_of_node = asrc_np;
 		priv->dai_link[1].platform_of_node = asrc_np;
-		priv->dai_link[2].codec_dai_name = codec_dev->name;
+		// priv->dai_link[2].codec_dai_name = codec_dev->name;
+		priv->dai_link[2].codec_dai_name = codec_dai_name;	/* alientek */
 		priv->dai_link[2].codec_of_node = codec_np;
 		priv->dai_link[2].cpu_of_node = cpu_np;
 		priv->dai_link[2].dai_fmt = priv->dai_fmt;
@@ -578,6 +703,7 @@ static const struct of_device_id fsl_asoc_card_dt_ids[] = {
 	{ .compatible = "fsl,imx-audio-cs42888", },
 	{ .compatible = "fsl,imx-audio-sgtl5000", },
 	{ .compatible = "fsl,imx-audio-wm8962", },
+	{ .compatible = "fsl,imx-audio-es8388", },
 	{}
 };
 
