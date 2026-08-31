@@ -4,8 +4,8 @@
 # 使用 Linaro GCC 4.9.4 交叉编译器（无需 Yocto SDK）
 # 替代依赖 Yocto SDK 的 build.sh
 # 用法: ./gengtao_build_linux_kernel.sh [all|build|zImage]  默认 all
-#   all     完整编译（distclean + defconfig + zImage + 全部 dtb
-#           + modules），产物打包到 build_linux_kernel_output/ 目录
+#   all     完整编译（distclean + defconfig + zImage + 板载屏幕对应
+#           dtb + modules），产物打包到 build_linux_kernel_output/ 目录
 #   build   增量编译（跳过 distclean，复用已有 .config）
 #   zImage  仅编译内核镜像（快速验证代码改动）
 #=========================================================
@@ -17,6 +17,7 @@ TOOLCHAIN_DIR=/usr/local/arm/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf
 CROSS_COMPILE=${TOOLCHAIN_DIR}/bin/arm-linux-gnueabihf-
 JOBS=$(nproc)                                                  # 并行编译核数
 OUTPUT_DIR=./build_linux_kernel_output                         # 编译产物输出目录
+DTB=imx6ull-14x14-emmc-7-1024x600-c                           # 板载屏幕对应设备树（只编译这一个）
 #----------------------------------------------------------------------
 
 # 切换到脚本所在目录（内核源码根目录）
@@ -38,14 +39,6 @@ case "$MODE" in
     all|build|zImage) ;;
     *) usage ;;
 esac
-
-# eMMC / NAND 核心板全部 14 个设备树（正点原子各型号屏幕）
-DTBS="imx6ull-14x14-emmc-10.1-1280x800-c imx6ull-14x14-emmc-7-1024x600-c \
-imx6ull-14x14-emmc-7-800x480-c imx6ull-14x14-emmc-4.3-800x480-c \
-imx6ull-14x14-emmc-4.3-480x272-c imx6ull-14x14-emmc-hdmi imx6ull-14x14-emmc-vga \
-imx6ull-14x14-nand-10.1-1280x800-c imx6ull-14x14-nand-7-1024x600-c \
-imx6ull-14x14-nand-7-800x480-c imx6ull-14x14-nand-4.3-800x480-c \
-imx6ull-14x14-nand-4.3-480x272-c imx6ull-14x14-nand-vga imx6ull-14x14-nand-hdmi"
 
 echo "=============================================="
 echo " i.MX6ULL Linux 内核编译脚本"
@@ -89,11 +82,9 @@ if [ "${MODE}" == "zImage" ]; then
     exit 0
 fi
 
-# 5. 编译设备树
-echo "[5/6] 编译设备树 ..."
-for d in ${DTBS}; do
-    ${MAKE} ${d}.dtb
-done
+# 5. 编译设备树（板载屏幕对应的那一个）
+echo "[5/6] 编译设备树 (${DTB}) ..."
+${MAKE} ${DTB}.dtb
 
 # 6. 编译内核模块并打包到 build_linux_kernel_output/
 echo "[6/6] 编译内核模块 (make modules) ..."
@@ -105,14 +96,14 @@ make modules_install INSTALL_MOD_PATH="${OUTPUT_DIR}"
 ( cd "${OUTPUT_DIR}"/lib/modules && tar -jcvf ../../modules.tar.bz2 . )
 rm -rf "${OUTPUT_DIR}"/lib
 cp arch/arm/boot/zImage "${OUTPUT_DIR}"/
-cp arch/arm/boot/dts/imx6ull*.dtb "${OUTPUT_DIR}"/
+cp arch/arm/boot/dts/"${DTB}".dtb "${OUTPUT_DIR}"/
 
 echo ""
 echo "=============================================="
 echo " 编译完成! 产物位于 ${OUTPUT_DIR}/:"
 ls "${OUTPUT_DIR}"
 echo ""
-echo " 烧录使用: ${OUTPUT_DIR}/zImage + 对应屏幕的 dtb + modules.tar.bz2"
+echo " 烧录使用: ${OUTPUT_DIR}/zImage + ${DTB}.dtb + modules.tar.bz2"
 echo " 验证命令:"
 echo "   file arch/arm/boot/zImage    # 应显示 ARM boot executable"
 echo "=============================================="
