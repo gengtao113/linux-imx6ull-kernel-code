@@ -1,0 +1,3 @@
+[submodule "linux-kernel-overlay"]
+	path = linux-kernel-overlay
+	url = git@github.com:gengtao113/linux-imx6ull-kernel-code-overlay.git
